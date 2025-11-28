@@ -1,0 +1,8 @@
+__pycache__/
+.idea/
+.env
+venv/
+Makefile
+ТЗ/
+*.yaml
+Dockerfile
