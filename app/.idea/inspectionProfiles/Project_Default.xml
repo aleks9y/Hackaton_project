@@ -1,0 +1,56 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="ignoredPackages">
+        <list>
+          <option value="aiofiles" />
+          <option value="aiogram" />
+          <option value="aiohappyeyeballs" />
+          <option value="aiohttp" />
+          <option value="aiosignal" />
+          <option value="annotated-types" />
+          <option value="asyncpg" />
+          <option value="attrs" />
+          <option value="cachetools" />
+          <option value="certifi" />
+          <option value="charset-normalizer" />
+          <option value="dotenv" />
+          <option value="frozenlist" />
+          <option value="google-auth" />
+          <option value="google-auth-oauthlib" />
+          <option value="greenlet" />
+          <option value="gspread" />
+          <option value="idna" />
+          <option value="magic-filter" />
+          <option value="multidict" />
+          <option value="oauthlib" />
+          <option value="pillow" />
+          <option value="propcache" />
+          <option value="pyasn1" />
+          <option value="pydantic" />
+          <option value="python-dateutil" />
+          <option value="python-dotenv" />
+          <option value="pytz" />
+          <option value="requests" />
+          <option value="requests-oauthlib" />
+          <option value="rsa" />
+          <option value="six" />
+          <option value="typing" />
+          <option value="typing-inspection" />
+          <option value="tzdata" />
+          <option value="tzlocal" />
+          <option value="urllib3" />
+          <option value="yarl" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="main.aiogram" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
