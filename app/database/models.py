@@ -107,6 +107,8 @@ class Theme(Base):
 
 
 class Homework(Base):
+    __tablename__ = "homeworks"
+    
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     theme_id: Mapped[int] = mapped_column(ForeignKey("themes.id"))
     title: Mapped[str] = mapped_column(String(200))  
