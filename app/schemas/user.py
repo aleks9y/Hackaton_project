@@ -1,27 +1,27 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import Optional
 
 
 class UserCredsSchema(BaseModel):
-    phone: str
+    email: EmailStr
     password: str
 
     model_config = ConfigDict(extra="forbid")
 
 
 class UserRegisterSchema(BaseModel):
-    phone: str
+    email: EmailStr
     password: str
-    fio: str
-    role: Optional[str] = "customer"
+    full_name: str
+    isTeacher: bool
 
     model_config = ConfigDict(extra="forbid")
 
 
 class UserSchema(BaseModel):
-    phone: str
+    email: EmailStr
     fio: str
-    role: str
+    isTeacher: bool
 
     model_config = ConfigDict(extra="forbid")
 
