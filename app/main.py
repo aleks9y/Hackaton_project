@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from database.engine import create_db, drop_db
 from fastapi.middleware.cors import CORSMiddleware
 from api.auth import auth_router
-from app.api.course import course_router
+from api.course import course_router
 
 
 @asynccontextmanager
@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(course_router, prefix="/course", tags=["products"])
+app.include_router(course_router, prefix="/course", tags=["course"])
 
 
 if __name__ == "__main__":

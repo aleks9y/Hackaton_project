@@ -1,38 +1,24 @@
-from datetime import datetime
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional, List
 
 
-class HomeworkSubmissionCreate(BaseModel):
-    homework_id: int
-    answer: str
+class CourseBase(BaseModel):
+    name: str
+    description: Optional[str] = None
 
 
-class HomeworkSubmissionResponse(BaseModel):
+class CourseCreate(CourseBase):
+    pass
+
+
+class CourseUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class CourseResponse(CourseBase):
     id: int
-    homework_id: int
-    student_id: int
-    answer: str
-    submitted_at: datetime
-    score: Optional[int] = None
-    teacher_comment: Optional[str] = None
-    attachment_files: List[str] = []
-
-    class Config:
-        from_attributes = True
-
-
-class TeacherFeedback(BaseModel):
-    score: int
-    teacher_comment: str
-
-
-class HomeworkWithSubmissions(BaseModel):
-    id: int
-    title: str
-    text: str
-    max_score: Optional[int] = None
-    submissions: List[HomeworkSubmissionResponse] = []
+    owner_id: int
 
     class Config:
         from_attributes = True
