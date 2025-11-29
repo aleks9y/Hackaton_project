@@ -4,9 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from database.engine import get_session
-from database.models import Theme, Course, User
+from database.models import Theme, Course, User, ThemeProgress
 from utils.auth import get_current_user
 from schemas.theme import ThemeCreate, ThemeUpdate, ThemeResponse
+from datetime import datetime
 
 themes_router = APIRouter()
 
@@ -132,3 +133,45 @@ async def delete_theme(
     await db.commit()
 
     return {"detail": "Theme deleted successfully"}
+
+
+
+@themes_router.post("/{theme_id}/mark-completed")
+async def mark_theme_completed(
+    theme_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Отметить тему как пройденную"""
+    # Проверяем существование темы
+    result = await session.execute(select(Theme).filter(Theme.id == theme_id))
+    theme = result.scalar_one_or_none()
+    
+    if not theme:
+        raise HTTPException(status_code=404, detail="Theme not found")
+    
+    # Проверяем, не отмечена ли тема уже как пройденная
+    result = await session.execute(
+        select(ThemeProgress).filter(
+            ThemeProgress.user_id == current_user.id,
+            ThemeProgress.theme_id == theme_id
+        )
+    )
+    existing_progress = result.scalar_one_or_none()
+    
+    if existing_progress:
+        # Если уже отмечена, обновляем
+        existing_progress.is_completed = True
+        existing_progress.completed_at = datetime.now()
+    else:
+        # Если нет, создаем новую запись
+        progress = ThemeProgress(
+            user_id=current_user.id,
+            theme_id=theme_id,
+            is_completed=True,
+            completed_at=datetime.now()
+        )
+        session.add(progress)
+    
+    await session.commit()
+    return {"message": "Theme marked as completed"}

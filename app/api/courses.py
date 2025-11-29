@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from database.engine import get_session
-from database.models import User, Course, UserCourseAssociation
+from database.models import User, Course, UserCourseAssociation, Theme, ThemeProgress
 from utils.auth import get_current_user
 from schemas.course import (
     CourseCreate,
@@ -276,3 +276,49 @@ async def get_course_students(
     students = result.scalars().all()
 
     return students
+
+
+@courses_router.get("/{course_id}/progress")
+async def get_course_progress(
+    course_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Получить прогресс по курсу"""
+    # Получаем все темы курса
+    result = await session.execute(
+        select(Theme).filter(Theme.course_id == course_id)
+    )
+    themes = result.scalars().all()
+    
+    # Получаем прогресс пользователя по этим темам
+    result = await session.execute(
+        select(ThemeProgress).filter(
+            ThemeProgress.user_id == current_user.id,
+            ThemeProgress.theme_id.in_([theme.id for theme in themes])
+        )
+    )
+    user_progress = result.scalars().all()
+    
+    # Создаем словарь для быстрого доступа
+    progress_dict = {progress.theme_id: progress for progress in user_progress}
+    
+    # Формируем ответ
+    completed_count = sum(1 for progress in user_progress if progress.is_completed)
+    total_count = len(themes)
+    progress_percentage = (completed_count / total_count * 100) if total_count > 0 else 0
+    
+    return {
+        "completed_count": completed_count,
+        "total_count": total_count,
+        "progress_percentage": progress_percentage,
+        "themes_progress": [
+            {
+                "theme_id": theme.id,
+                "theme_name": theme.name,
+                "is_completed": progress_dict.get(theme.id) and progress_dict[theme.id].is_completed,
+                "is_homework": theme.is_homework
+            }
+            for theme in themes
+        ]
+    }

@@ -395,6 +395,7 @@
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .theme-item:hover {
@@ -584,6 +585,77 @@
                 padding: 10px 16px;
             }
         }
+
+        .theme-item-completed {
+            border-color: var(--success) !important;
+            background: #f0fdf4 !important;
+            position: relative;
+        }
+
+        .theme-item-completed::before {
+            content: "✓";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .theme-status {
+            font-size: 11px;
+            color: var(--success);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* Прогресс-бар курса */
+        .progress-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .progress-bar {
+            width: 220px;
+            height: 6px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            transition: width 0.2s ease;
+        }
+        /* Прогресс-бар для карточек курсов */
+        .course-progress {
+            margin-top: 8px;
+        }
+
+        .course-progress-bar {
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .course-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            transition: width 0.3s ease;
+        }
+
+        .course-progress-text {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -667,7 +739,12 @@
                     <div class="card-title" id="course-title">Курс</div>
                     <div class="card-subtitle" id="course-meta"></div>
                 </div>
-                <span class="pill" id="course-progress">Прогресс: нет данных</span>
+                <div class="progress-wrapper">
+                    <span class="pill" id="course-progress-label">Прогресс: нет данных</span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" id="course-progress-bar"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="layout-two-cols-course">
@@ -726,7 +803,7 @@
                         </div>
                     </div>
 
-                    <!-- Навигация между темами -->
+                    <!-- Навигация между темами (если понадобится) -->
                     <div class="theme-navigation" id="theme-navigation" style="display:none;">
                         <button class="btn btn-secondary" type="button" id="prev-theme-btn">
                             ← Предыдущая тема
@@ -762,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Обработчики для чипов фильтрации
+    // Обработчики для чипов фильтрации (пока заглушка)
     const chips = document.querySelectorAll('.chip');
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
