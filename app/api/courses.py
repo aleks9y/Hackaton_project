@@ -72,13 +72,13 @@ def enroll_course(
 @courses_router.post("/", response_model=CourseDetailResponse)
 def create_course(
     course_data: CourseCreate,
-    db = SessionDep,
-    current_user: User = Depends(get_current_user)
+    db=SessionDep,
+    current_user: User = Depends(get_current_user),
 ):
     new_course = Course(
         name=course_data.name,
         description=course_data.description,
-        owner_id=current_user.id
+        owner_id=current_user.id,
     )
 
     db.add(new_course)
@@ -92,8 +92,8 @@ def create_course(
 def update_course(
     course_id: int,
     course_data: CourseUpdate,
-    db = SessionDep,
-    current_user: User = Depends(get_current_user)
+    db=SessionDep,
+    current_user: User = Depends(get_current_user),
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
 
@@ -101,7 +101,9 @@ def update_course(
         raise HTTPException(status_code=404, detail="Course not found")
 
     if course.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You are not the owner of this course")
+        raise HTTPException(
+            status_code=403, detail="You are not the owner of this course"
+        )
 
     if course_data.name is not None:
         course.name = course_data.name
@@ -116,9 +118,7 @@ def update_course(
 
 @courses_router.delete("/{course_id}")
 def delete_course(
-    course_id: int,
-    db = SessionDep,
-    current_user: User = Depends(get_current_user)
+    course_id: int, db=SessionDep, current_user: User = Depends(get_current_user)
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
 
@@ -126,7 +126,9 @@ def delete_course(
         raise HTTPException(status_code=404, detail="Course not found")
 
     if course.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You are not the owner of this course")
+        raise HTTPException(
+            status_code=403, detail="You are not the owner of this course"
+        )
 
     db.delete(course)
     db.commit()
