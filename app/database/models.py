@@ -106,6 +106,7 @@ class Homework(Base):
     theme_id: Mapped[int] = mapped_column(ForeignKey("themes.id"))
     title: Mapped[str] = mapped_column(String(200))
     text: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, default="pending")
 
     theme: Mapped["Theme"] = relationship("Theme", back_populates="homeworks")
     student: Mapped["User"] = relationship("User", back_populates="created_homeworks")
