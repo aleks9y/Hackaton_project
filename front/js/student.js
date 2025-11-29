@@ -1,5 +1,5 @@
 // Настройки
-const BASE_URL = "https://merely-factual-platy.cloudpub.ru";
+const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru";
 const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
@@ -133,7 +133,7 @@ async function init() {
 
         try {
             // Получаем все курсы
-            allCoursesList = await apiFetch("/courses/my");
+            allCoursesList = await apiFetch("/courses/all");
             
             // Фильтруем по поисковому запросу
             let filteredCourses = allCoursesList;
@@ -154,7 +154,8 @@ async function init() {
             }
 
             filteredCourses.forEach(course => {
-                const isEnrolled = myCoursesList.some(myCourse => myCourse.id === course.id);
+                // Используем флаг is_enrolled из ответа API вместо myCoursesList
+                const isEnrolled = course.is_enrolled === true;
                 
                 const courseCard = document.createElement("div");
                 courseCard.className = "course-card";
@@ -164,7 +165,7 @@ async function init() {
                         <div class="course-name">${course.name || "Курс без названия"}</div>
                         <div class="course-desc">${course.description || "Описание отсутствует"}</div>
                         <div class="course-meta">
-                            ${course.owner_id ? `Преподаватель: ${course.owner_id}` : ''}
+                            ${course.owner ? `Преподаватель: ${course.owner.full_name}` : ''}
                         </div>
                     </div>
                     <div>

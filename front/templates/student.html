@@ -165,7 +165,9 @@
         .card-title {
             font-size: 16px;
             font-weight: 600;
-        }.card-subtitle {
+        }
+
+        .card-subtitle {
             font-size: 13px;
             color: var(--muted);
         }
@@ -225,37 +227,52 @@
             margin-top: 24px;
         }
 
+        /* Стили для вкладок */
+        .tabs-container {
+            margin-bottom: 20px;
+        }
+
         .tabs {
             display: inline-flex;
-            border-radius: 999px;
-            padding: 3px;
-            background: #e5e7eb;
+            border-radius: 12px;
+            padding: 4px;
+            background: #f3f4f6;
+            border: 1px solid var(--border);
         }
 
         .tab {
-            padding: 6px 14px;
-            font-size: 13px;
-            border-radius: 999px;
+            padding: 8px 20px;
+            font-size: 14px;
+            border-radius: 8px;
             cursor: pointer;
             border: none;
             background: transparent;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.7);
         }
 
         .tab-active {
             background: #fff;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+            color: var(--primary);
         }
 
-        .layout-two-cols {
-            display: grid;
-            grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr);
-            gap: 18px;
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content-active {
+            display: block;
         }
 
         .search-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .search-row .form-control {
@@ -271,129 +288,202 @@
         .courses-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 6px;
+            gap: 12px;
+            margin-top: 16px;
         }
 
         .course-card {
             border-radius: 12px;
-            padding: 10px 11px 9px;
+            padding: 16px;
             border: 1px solid var(--border);
             background: #f9fafb;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 10px;
+            gap: 16px;
             cursor: default;
+            transition: all 0.2s ease;
+        }
+
+        .course-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
         }
 
         .course-card-main {
-            max-width: 70%;
+            flex: 1;
         }
 
         .course-name {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 2px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
         }
 
         .course-desc {
-            font-size: 12px;
+            font-size: 14px;
             color: var(--muted);
+            line-height: 1.4;
+            margin-bottom: 8px;
         }
 
         .course-meta {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--muted);
-            margin-top: 4px;
+            display: flex;
+            gap: 16px;
         }
 
         .pill {
             display: inline-flex;
-            padding: 3px 8px;
-            font-size: 11px;
+            padding: 4px 10px;
+            font-size: 12px;
             border-radius: 999px;
             background: #ecfeff;
             color: #0891b2;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            border-radius: 999px;
-            background: #e5e7eb;
-            overflow: hidden;
-        }
-
-        .progress-bar-inner {
-            height: 100%;
-            width: 60%;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
+            font-weight: 500;
         }
 
         .chip-row {
-            margin-top: 6px;
+            margin-top: 16px;
             display: flex;
-            gap: 6px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
         .chip {
-            padding: 3px 8px;
-            font-size: 11px;
+            padding: 6px 12px;
+            font-size: 12px;
             border-radius: 999px;
             background: #eef2ff;
             color: #4f46e5;
-        }.themes-list {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip:hover {
+            background: #e0e7ff;
+        }
+
+        .chip-active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Стили для страницы курса */
+        .layout-two-cols-course {
+            display: grid;
+            grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr);
+            gap: 24px;
+        }
+
+        .themes-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 8px;
         }
 
         .theme-item {
-            padding: 8px 10px;
-            border-radius: 10px;
+            padding: 12px 14px;
+            border-radius: 8px;
             border: 1px solid var(--border);
             background: #f9fafb;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .theme-item:hover {
+            border-color: var(--primary);
+            background: #f0f7ff;
         }
 
         .theme-item-active {
             border-color: var(--primary);
             background: #eff6ff;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
         }
 
         .theme-title {
             font-weight: 500;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
+            font-size: 14px;
+            line-height: 1.3;
         }
 
         .theme-type {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--muted);
         }
 
-        .text-block {
-            font-size: 14px;
-            line-height: 1.5;
+        .theme-content-area {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 24px;
+            min-height: 500px;
+        }
+
+        .theme-main-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .theme-text-content {
+            font-size: 16px;
+            line-height: 1.7;
             color: #111827;
         }
 
-        .text-block + .text-block {
-            margin-top: 10px;
+        .theme-text-content p {
+            margin-bottom: 16px;
+        }
+
+        .theme-text-content code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+        }
+
+        .theme-text-content pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+        }
+
+        .theme-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
         }
 
         .textarea {
             width: 100%;
-            min-height: 90px;
+            min-height: 120px;
             resize: vertical;
-            padding: 9px 10px;
+            padding: 12px;
             border-radius: 10px;
             border: 1px solid var(--border);
-            font-size: 13px;
+            font-size: 14px;
             outline: none;
             background: #f9fafb;
+            font-family: inherit;
         }
 
         .textarea:focus {
@@ -403,48 +493,64 @@
         }
 
         .files-input {
-            font-size: 12px;
+            font-size: 14px;
             color: var(--muted);
+            padding: 8px 0;
         }
 
         .grade-block {
             border-radius: 10px;
-            padding: 8px 10px;
+            padding: 16px;
             background: #f9fafb;
             border: 1px dashed var(--border);
-            font-size: 13px;
+            font-size: 14px;
         }
 
         .grade-score {
-            font-weight: 500;
+            font-weight: 600;
             color: #0f766e;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 8px;
-            margin-top: 10px;
-            font-size: 12px;
-            color: var(--muted);
+            font-size: 16px;
         }
 
         .message-box {
-            margin-top: 8px;
-            font-size: 12px;
+            margin-top: 12px;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 8px;
         }
 
         .message-error {
             color: var(--danger);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
         }
 
         .message-success {
             color: var(--success);
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
+        .message-info {
+            color: var(--primary);
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
         }
 
         @media (max-width: 900px) {
-            .layout-two-cols {
+            .layout-two-cols-course {
                 grid-template-columns: minmax(0, 1fr);
             }
 
@@ -456,6 +562,26 @@
 
             .user-mini {
                 align-items: flex-start;
+            }
+
+            .themes-list {
+                max-height: 300px;
+                margin-bottom: 20px;
+            }
+
+            .theme-content-area {
+                padding: 16px;
+            }
+
+            .tabs {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .tab {
+                flex: 1;
+                text-align: center;
+                padding: 10px 16px;
             }
         }
     </style>
@@ -487,57 +613,48 @@
         <div class="card">
             <div class="card-header">
                 <div>
-                    <div class="card-title">Мои курсы и поиск</div>
+                    <div class="card-title">Мои курсы</div>
                     <div class="card-subtitle">Записывайтесь на курсы и продолжайте обучение</div>
                 </div>
             </div>
 
-            <div class="layout-two-cols">
-                <!-- Поиск курсов -->
-                <div>
-                    <h3 class="card-title" style="margin-bottom: 8px;">Поиск курсов</h3>
-                    <p class="card-subtitle" style="margin-bottom: 10px;">
-                        Найдите нужный курс. Если курс уже записан, вы сможете перейти в него.
-                    </p><div class="search-row">
-                        <input class="form-control" id="search-input" type="text" placeholder="Название курса или автор">
-                        <button class="btn btn-sm" type="button" id="search-btn">Найти</button>
-                    </div>
+            <!-- Вкладки -->
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab tab-active" data-tab="all-courses">Все курсы</button>
+                    <button class="tab" data-tab="my-courses">Мои курсы</button>
+                </div>
+            </div>
 
-                    <div class="muted-text">
-                        Не нашли нужный курс по запросу?
-                        <span class="link" id="show-all-link">показать все доступные курсы</span>.
-                    </div>
-
-                    <div class="courses-list" id="all-courses-list">
-                        <!-- JS подставит карточки -->
-                    </div>
-
-                    <div class="pagination" id="pagination">
-                        <!-- Можно добавить пагинацию потом -->
-                    </div>
-
-                    <div class="message-box" id="all-courses-message"></div>
+            <!-- Контент вкладки "Все курсы" -->
+            <div class="tab-content tab-content-active" id="all-courses-tab">
+                <div class="search-row">
+                    <input class="form-control" id="search-input" type="text" placeholder="Название курса, описание или преподаватель">
+                    <button class="btn" type="button" id="search-btn">Найти</button>
                 </div>
 
-                <!-- Мои курсы -->
-                <div>
-                    <h3 class="card-title" style="margin-bottom: 8px;">Мои курсы</h3>
-                    <p class="card-subtitle" style="margin-bottom: 10px;">
-                        Курсы, на которые вы уже записались.
-                    </p>
-
-                    <div class="courses-list" id="my-courses-list">
-                        <!-- JS подставит карточки -->
-                    </div>
-
-                    <div class="chip-row">
-                        <span class="chip">Все</span>
-                        <span class="chip">В процессе</span>
-                        <span class="chip">Завершенные</span>
-                    </div>
-
-                    <div class="message-box" id="my-courses-message"></div>
+                <div class="muted-text" style="margin-bottom: 16px;">
+                    Не нашли нужный курс по запросу?
+                    <span class="link" id="show-all-link">показать все доступные курсы</span>.
                 </div>
+
+                <div class="courses-list" id="all-courses-list">
+                    <!-- JS подставит карточки -->
+                </div>
+
+                <div class="message-box" id="all-courses-message"></div>
+            </div>
+
+            <!-- Контент вкладки "Мои курсы" -->
+            <div class="tab-content" id="my-courses-tab">
+                <div class="chip-row">
+                </div>
+
+                <div class="courses-list" id="my-courses-list">
+                    <!-- JS подставит карточки -->
+                </div>
+
+                <div class="message-box" id="my-courses-message"></div>
             </div>
         </div>
     </section>
@@ -553,51 +670,70 @@
                 <span class="pill" id="course-progress">Прогресс: нет данных</span>
             </div>
 
-            <div class="layout-two-cols">
-                <!-- Список тем -->
+            <div class="layout-two-cols-course">
+                <!-- Список тем - компактный слева -->
                 <div>
-                    <h3 class="card-title" style="margin-bottom: 8px;">Темы курса</h3>
-                    <p class="card-subtitle" style="margin-bottom: 8px;">
-                        Нажмите на тему, чтобы посмотреть материалы и отправить домашнее задание.
-                    </p>
-
+                    <h3 class="card-title" style="margin-bottom: 16px;">Темы курса</h3>
+                    
                     <div class="themes-list" id="themes-list">
                         <!-- JS подставит темы -->
                     </div>
 
                     <div class="message-box" id="themes-message"></div>
 
-                    <button class="btn btn-sm btn-secondary" type="button" id="back-to-dashboard" style="margin-top:10px;">
-                        ← Назад к списку курсов
+                    <button class="btn btn-secondary" type="button" id="back-to-dashboard" style="margin-top:20px; width:100%;">
+                        ← Назад к курсам
                     </button>
                 </div>
 
-                <!-- Контент темы и домашка -->
-                <div>
-                    <h3 class="card-title" style="margin-bottom: 8px;" id="theme-title-heading">
-                        Тема
-                    </h3>
+                <!-- Контент темы - просторный по центру -->
+                <div class="theme-content-area">
+                    <h2 class="theme-main-title" id="theme-title-heading">
+                        Выберите тему
+                    </h2>
 
-                    <div class="text-block" id="theme-text">
-                        Выберите тему слева, чтобы увидеть материалы.
-                    </div><div class="page-section" id="homework-section" style="display:none;">
-                        <div class="card-subtitle" style="margin-bottom: 6px;">Ваш ответ</div>
-                        <textarea class="textarea" id="homework-answer" placeholder="Опишите решение или вставьте код"></textarea>
-                        <div class="form-group" style="margin-top: 8px;">
-                            <label class="form-label" for="hw-file">Прикрепить файлы (визуально, без логики)</label>
+                    <div class="theme-text-content" id="theme-text">
+                        <p>Выберите тему из списка слева, чтобы просмотреть материалы и задания.</p>
+                    </div>
+
+                    <!-- Блок с домашним заданием -->
+                    <div class="page-section" id="homework-section" style="display:none; margin-top: 24px;">
+                        <h3 class="card-title" style="margin-bottom: 16px;">Домашнее задание</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Ваш ответ</label>
+                            <textarea class="textarea" id="homework-answer" placeholder="Опишите решение или вставьте код..." style="min-height: 150px;"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="hw-file">Прикрепить файлы</label>
                             <input id="hw-file" type="file" multiple class="files-input">
                         </div>
-                        <button class="btn btn-sm" type="button" id="btn-send-homework">Отправить на проверку</button>
+                        
+                        <div class="form-footer">
+                            <button class="btn" type="button" id="btn-send-homework">Отправить на проверку</button>
+                            <span class="muted-text">Работа будет отправлена преподавателю</span>
+                        </div>
 
                         <div class="message-box" id="homework-message"></div>
                     </div>
 
-                    <div class="page-section" id="teacher-answer-section" style="display:none;">
-                        <div class="card-subtitle" style="margin-bottom: 6px;">Ответ преподавателя</div>
+                    <!-- Ответ преподавателя -->
+                    <div class="page-section" id="teacher-answer-section" style="display:none; margin-top: 24px;">
+                        <h3 class="card-title" style="margin-bottom: 16px;">Результат проверки</h3>
                         <div class="grade-block" id="teacher-answer-block">
-                            <!-- JS подставит ответ/оценку, если добавишь эндпоинт -->
-                            Пока нет данных по проверке.
+                            Ожидается проверка преподавателем...
                         </div>
+                    </div>
+
+                    <!-- Навигация между темами -->
+                    <div class="theme-navigation" id="theme-navigation" style="display:none;">
+                        <button class="btn btn-secondary" type="button" id="prev-theme-btn">
+                            ← Предыдущая тема
+                        </button>
+                        <button class="btn" type="button" id="next-theme-btn">
+                            Следующая тема →
+                        </button>
                     </div>
                 </div>
             </div>
@@ -605,6 +741,38 @@
     </section>
 
 </div>
+
+<script>
+// JavaScript для переключения вкладок
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.getAttribute('data-tab');
+            
+            // Убираем активный класс у всех вкладок и контента
+            tabs.forEach(t => t.classList.remove('tab-active'));
+            tabContents.forEach(tc => tc.classList.remove('tab-content-active'));
+            
+            // Добавляем активный класс текущей вкладке и контенту
+            tab.classList.add('tab-active');
+            document.getElementById(`${targetTab}-tab`).classList.add('tab-content-active');
+        });
+    });
+
+    // Обработчики для чипов фильтрации
+    const chips = document.querySelectorAll('.chip');
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('chip-active'));
+            chip.classList.add('chip-active');
+            // TODO: Добавить логику фильтрации курсов
+        });
+    });
+});
+</script>
 
 <script src="/front/js/student.js"></script>
 </body>
