@@ -59,6 +59,10 @@ class User(Base):
     created_homeworks: Mapped[List["Homework"]] = relationship(  # Добавлена новая связь
         "Homework", back_populates="student"
     )
+    
+    theme_progress: Mapped[List["ThemeProgress"]] = relationship(  # Добавьте эту строку
+        "ThemeProgress", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Course(Base):
@@ -96,6 +100,19 @@ class Theme(Base):
     files: Mapped[List["File"]] = relationship(
         "File", back_populates="theme", cascade="all, delete-orphan"
     )
+
+
+class ThemeProgress(Base):
+    __tablename__ = "theme_progress"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    theme_id: Mapped[int] = mapped_column(ForeignKey("themes.id", ondelete="CASCADE"))
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[Optional[DateTime]] = mapped_column(DateTime)
+
+    user: Mapped["User"] = relationship("User")
+    theme: Mapped["Theme"] = relationship("Theme")
 
 
 class Homework(Base):
@@ -140,7 +157,7 @@ class File(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     theme_id: Mapped[int] = mapped_column(ForeignKey("themes.id", ondelete="CASCADE"))
-    is_homework: Mapped[bool] = mapped_column(Boolean)
+    is_homework: Mapped[bool] = mapped_column(Boolean, default=False)
     file_path: Mapped[str] = mapped_column(Text)
 
     theme: Mapped["Theme"] = relationship("Theme", back_populates="files")

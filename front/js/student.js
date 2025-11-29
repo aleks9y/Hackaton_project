@@ -1,5 +1,5 @@
 // Настройки
-const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
+const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru"; // поправь под свой бэк
 const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
@@ -56,7 +56,8 @@ async function init() {
     const elPageCourseDetail = document.getElementById("page-course-detail");
     const elCourseTitle = document.getElementById("course-title");
     const elCourseMeta = document.getElementById("course-meta");
-    const elCourseProgress = document.getElementById("course-progress");
+    const elCourseProgressLabel = document.getElementById("course-progress-label");
+    const elCourseProgressBar = document.getElementById("course-progress-bar");
     const elThemesList = document.getElementById("themes-list");
     const elThemesMsg = document.getElementById("themes-message");
     const elBackToDashboard = document.getElementById("back-to-dashboard");
@@ -154,7 +155,7 @@ async function init() {
             }
 
             filteredCourses.forEach(course => {
-                // Используем флаг is_enrolled из ответа API вместо myCoursesList
+                // Используем флаг is_enrolled из ответа API
                 const isEnrolled = course.is_enrolled === true;
                 
                 const courseCard = document.createElement("div");
@@ -203,7 +204,28 @@ async function init() {
                 return;
             }
 
-            myCoursesList.forEach(course => {
+            // Загружаем прогресс для каждого курса
+            const coursesWithProgress = await Promise.all(
+                myCoursesList.map(async (course) => {
+                    try {
+                        const progress = await loadCourseProgress(course.id);
+                        return {
+                            ...course,
+                            progress_percentage: progress ? progress.progress_percentage : 0
+                        };
+                    } catch (e) {
+                        console.error(`Ошибка загрузки прогресса для курса ${course.id}:`, e);
+                        return {
+                            ...course,
+                            progress_percentage: 0
+                        };
+                    }
+                })
+            );
+
+            coursesWithProgress.forEach(course => {
+                const percentage = course.progress_percentage || 0;
+                
                 const courseCard = document.createElement("div");
                 courseCard.className = "course-card";
                 
@@ -214,6 +236,13 @@ async function init() {
                         <div class="course-meta">
                             Тем: ${course.themes_count || 0}
                         </div>
+                        <!-- Добавляем прогресс-бар -->
+                        <div class="course-progress">
+                            <div class="course-progress-bar">
+                                <div class="course-progress-fill" style="width: ${percentage}%"></div>
+                            </div>
+                            <div class="course-progress-text">Прогресс: ${Math.round(percentage)}%</div>
+                        </div>
                     </div>
                     <div>
                         <button class="btn btn-sm" onclick="openCourse(${course.id})">Перейти</button>
@@ -223,7 +252,7 @@ async function init() {
                 elMyCoursesList.appendChild(courseCard);
             });
 
-            elMyCoursesMsg.textContent = `Ваших курсов: ${myCoursesList.length}`;
+            elMyCoursesMsg.textContent = `Ваших курсов: ${coursesWithProgress.length}`;
             elMyCoursesMsg.className = "message-box message-success";
 
         } catch (e) {
@@ -242,7 +271,7 @@ async function init() {
             const themes = await apiFetch(`/themes/${courseId}`);
             
             // Показываем страницу курса
-            showCourseDetail(currentCourse, themes);
+            await showCourseDetail(currentCourse, themes);
             
         } catch (e) {
             console.error('Ошибка открытия курса:', e);
@@ -250,11 +279,37 @@ async function init() {
         }
     }
 
-    function showCourseDetail(course, themes) {
+    async function showCourseDetail(course, themes) {
         // Обновляем информацию о курсе
         elCourseTitle.textContent = course.name || "Курс без названия";
         elCourseMeta.textContent = course.description || "Описание отсутствует";
-        elCourseProgress.textContent = "Прогресс: не отслеживается";
+
+        // Загружаем прогресс по курсу
+        const progress = await loadCourseProgress(course.id);
+        
+        // Подготовим карту прогресса
+        let progressMap = {};
+        let completedCount = 0;
+        let totalCount = 0;
+        let percentage = 0;
+
+        if (progress) {
+            totalCount = progress.total_count || 0;
+            completedCount = progress.completed_count || 0;
+            percentage = progress.progress_percentage || 0;
+
+            if (Array.isArray(progress.themes_progress)) {
+                progress.themes_progress.forEach(tp => {
+                    progressMap[tp.theme_id] = tp;
+                });
+            }
+
+            elCourseProgressLabel.textContent = `Прогресс: ${completedCount}/${totalCount} (${Math.round(percentage)}%)`;
+            elCourseProgressBar.style.width = `${Math.min(Math.max(percentage, 0), 100)}%`;
+        } else {
+            elCourseProgressLabel.textContent = "Прогресс: не отслеживается";
+            elCourseProgressBar.style.width = "0%";
+        }
 
         // Заполняем список тем
         elThemesList.innerHTML = "";
@@ -263,24 +318,58 @@ async function init() {
             elThemesList.innerHTML = '<div class="muted-text">Темы пока не добавлены</div>';
         } else {
             themes.forEach(theme => {
+                const themeProgress = progressMap[theme.id];
+                const isCompleted = themeProgress && themeProgress.is_completed;
+
                 const themeItem = document.createElement("div");
                 themeItem.className = "theme-item";
+                
+                if (isCompleted && !theme.is_homework) {
+                    themeItem.classList.add("theme-item-completed");
+                }
+
                 themeItem.innerHTML = `
                     <div class="theme-title">${theme.name || "Тема без названия"}</div>
                     <div class="theme-type">${theme.is_homework ? "Домашнее задание" : "Учебный материал"}</div>
+                    ${isCompleted && !theme.is_homework ? '<div class="theme-status">✓ Пройдено</div>' : ''}
                 `;
-                
-                themeItem.addEventListener("click", () => {
+
+                themeItem.addEventListener("click", async () => {
                     // Снимаем выделение со всех тем
                     document.querySelectorAll(".theme-item").forEach(item => {
                         item.classList.remove("theme-item-active");
                     });
                     // Выделяем текущую тему
                     themeItem.classList.add("theme-item-active");
-                    
+
+                    // Если это учебный материал (не ДЗ), отмечаем как пройденную
+                    if (!theme.is_homework) {
+                        await markThemeAsCompleted(theme.id);
+
+                        // Обновляем прогресс и визуальное состояние
+                        const newProgress = await loadCourseProgress(course.id);
+                        if (newProgress) {
+                            const newCompleted = newProgress.completed_count || 0;
+                            const newTotal = newProgress.total_count || 0;
+                            const newPercent = newProgress.progress_percentage || 0;
+
+                            elCourseProgressLabel.textContent = `Прогресс: ${newCompleted}/${newTotal} (${Math.round(newPercent)}%)`;
+                            elCourseProgressBar.style.width = `${Math.min(Math.max(newPercent, 0), 100)}%`;
+
+                            // Обновляем стиль темы
+                            themeItem.classList.add("theme-item-completed");
+                            if (!themeItem.querySelector(".theme-status")) {
+                                const statusDiv = document.createElement("div");
+                                statusDiv.className = "theme-status";
+                                statusDiv.textContent = "✓ Пройдено";
+                                themeItem.appendChild(statusDiv);
+                            }
+                        }
+                    }
+
                     showThemeContent(theme);
                 });
-                
+
                 elThemesList.appendChild(themeItem);
             });
         }
@@ -319,6 +408,7 @@ async function init() {
         elTeacherAnswerSection.style.display = "none";
         elHomeworkAnswer.value = "";
         elHomeworkMessage.textContent = "";
+        elHomeworkMessage.className = "message-box";
     }
 
     function showDashboard() {
@@ -353,15 +443,14 @@ async function init() {
             elHomeworkMessage.textContent = "Отправка...";
             elHomeworkMessage.className = "message-box";
 
-            // TODO: Реализовать отправку домашнего задания
-            // await apiFetch("/homeworks/submit", {
-            //     method: "POST",
-            //     headers: { "Content-Type": "application/json" },
-            //     body: JSON.stringify({
-            //         theme_id: currentTheme.id,
-            //         answer: answer
-            //     })
-            // });
+            await apiFetch(`/homeworks/${currentTheme.id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: currentTheme.name,
+                    text: answer
+                })
+            });
 
             elHomeworkMessage.textContent = "Домашнее задание отправлено на проверку!";
             elHomeworkMessage.className = "message-box message-success";
@@ -398,7 +487,7 @@ async function init() {
     window.openCourse = openCourse;
 }
 
-// Добавьте эту функцию для получения токена из кук (если нужно)
+// Получить токен из кук (если понадобится)
 function getTokenFromCookies() {
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
@@ -408,4 +497,27 @@ function getTokenFromCookies() {
         }
     }
     return null;
+}
+
+// Отметить тему как пройденную
+async function markThemeAsCompleted(themeId) {
+    try {
+        await apiFetch(`/themes/${themeId}/mark-completed`, {
+            method: "POST"
+        });
+        console.log(`Тема ${themeId} отмечена как пройденная`);
+    } catch (e) {
+        console.error('Ошибка отметки темы как пройденной:', e);
+    }
+}
+
+// Загрузить прогресс по курсу
+async function loadCourseProgress(courseId) {
+    try {
+        const progress = await apiFetch(`/courses/${courseId}/progress`);
+        return progress;
+    } catch (e) {
+        console.error('Ошибка загрузки прогресса:', e);
+        return null;
+    }
 }
