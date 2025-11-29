@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -16,7 +16,7 @@ from schemas.course import (
 courses_router = APIRouter()
 
 
-@courses_router.get("/my", response_model=list[CourseShortResponse])
+@courses_router.get("/my")
 async def my_courses(
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -27,17 +27,13 @@ async def my_courses(
         )
         return result.scalars().all()
 
-    # Для студента сразу подгружаем курсы
-    result = await db.execute(
-        select(User)
-        .options(selectinload(User.enrolled_courses))
-        .filter(User.id == current_user.id)
-    )
-    user = result.scalar_one()
-    return user.enrolled_courses
+    res = await db.execute(
+        select(Course)
+        )
+    return res.scalars().all()
 
 
-@courses_router.get("/{course_id}", response_model=CourseDetailResponse)
+@courses_router.get("/{course_id}")
 async def get_course(
     course_id: int,
     db: AsyncSession = Depends(get_session),
@@ -57,13 +53,20 @@ async def enroll_course(
     db: AsyncSession = Depends(get_session),
     student: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Course).filter(Course.id == course_id))
+    # Подгружаем enrolled_courses у студента сразу
+    await db.refresh(student, attribute_names=["enrolled_courses"])
+
+    # Получаем курс
+    result = await db.execute(
+        select(Course)
+        .options(selectinload(Course.students))  # если нужно подгружать студентов
+        .filter(Course.id == course_id)
+    )
     course = result.scalar_one_or_none()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    await db.refresh(student)  # чтобы подгрузить enrolled_courses
     if course in student.enrolled_courses:
         return {"detail": "Already enrolled"}
 
@@ -79,20 +82,25 @@ async def create_course(
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    new_course = Course(
-        name=course_data.name,
-        description=course_data.description,
-        owner_id=current_user.id,
+    if current_user.is_teacher == True:
+        new_course = Course(
+            name=course_data.name,
+            description=course_data.description,
+            owner_id=current_user.id,
+        )
+
+        db.add(new_course)
+        await db.commit()
+        await db.refresh(new_course)
+
+        return new_course
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You are not a teacher"
     )
 
-    db.add(new_course)
-    await db.commit()
-    await db.refresh(new_course)
 
-    return new_course
-
-
-@courses_router.patch("/{course_id}", response_model=CourseDetailResponse)
+@courses_router.patch("/{course_id}")
 async def update_course(
     course_id: int,
     course_data: CourseUpdate,

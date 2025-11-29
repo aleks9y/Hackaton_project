@@ -13,6 +13,7 @@ class ThemeCreate(ThemeBase):
 class ThemeUpdate(BaseModel):
     name: Optional[str] = None
     text: Optional[str] = None
+    is_homework: Optional[bool] = False
 
 
 class ThemeResponse(ThemeBase):

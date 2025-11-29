@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -10,7 +11,7 @@ from schemas.theme import ThemeCreate, ThemeUpdate, ThemeResponse
 themes_router = APIRouter()
 
 
-@themes_router.get("/{course_id}", response_model=list[ThemeResponse])
+@themes_router.get("/{course_id}")
 async def get_themes(
     course_id: int,
     db: AsyncSession = Depends(get_session),
@@ -30,7 +31,7 @@ async def get_themes(
 
 
 # ТОЛЬКО ПРЕПОД
-@themes_router.post("/{course_id}", response_model=ThemeResponse)
+@themes_router.post("/{course_id}",)
 async def create_theme(
     course_id: int,
     theme_data: ThemeCreate,
@@ -59,21 +60,26 @@ async def create_theme(
     return new_theme
 
 
-@themes_router.patch("/theme/{theme_id}", response_model=ThemeResponse)
+@themes_router.patch("/theme/{theme_id}")
 async def update_theme(
     theme_id: int,
     theme_data: ThemeUpdate,
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Theme).filter(Theme.id == theme_id))
+    result = await db.execute(
+        select(Theme)
+        .options(
+            selectinload(Theme.course).selectinload(Course.owner)  # сразу подгружаем курс и владельца
+        )
+        .filter(Theme.id == theme_id)
+    )
     theme = result.scalar_one_or_none()
 
     if not theme:
         raise HTTPException(status_code=404, detail="Theme not found")
 
-    # Проверяем что он владелец курса
-    await db.refresh(theme)  # чтобы подгрузить связь с курсом
+    # Проверяем что пользователь владелец курса
     if theme.course.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You are not the owner of this course")
 
@@ -83,7 +89,7 @@ async def update_theme(
         theme.text = theme_data.text
 
     await db.commit()
-    await db.refresh(theme)
+    await db.refresh(theme)  # обновляем объект после коммита, чтобы вернуть актуальные данные
 
     return theme
 
@@ -94,13 +100,19 @@ async def delete_theme(
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Theme).filter(Theme.id == theme_id))
+    result = await db.execute(
+        select(Theme)
+        .options(
+            selectinload(Theme.course).selectinload(Course.owner)  # сразу подгружаем курс и владельца
+        )
+        .filter(Theme.id == theme_id)
+    )
     theme = result.scalar_one_or_none()
 
     if not theme:
         raise HTTPException(status_code=404, detail="Theme not found")
 
-    await db.refresh(theme)
+    # Уже не нужно refresh, связи подгружены заранее
     if theme.course.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You are not the owner of this course")
 

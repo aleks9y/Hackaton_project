@@ -87,7 +87,7 @@ class Theme(Base):
     course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
     name: Mapped[str] = mapped_column(Text)
     text: Mapped[str] = mapped_column(Text)
-    is_homework: Mapped[bool] = mapped_column(Boolean)
+    is_homework: Mapped[bool] = mapped_column(Boolean, default=False)
 
     course: Mapped["Course"] = relationship("Course", back_populates="themes")
     homeworks: Mapped[List["Homework"]] = relationship(
