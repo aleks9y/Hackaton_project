@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import datetime
 
-from app.schemas.file import FileSchema
+from schemas.file import FileSchema
 
 
 class HomeworkBase(BaseModel):
@@ -11,7 +11,7 @@ class HomeworkBase(BaseModel):
 
 
 class HomeworkCreate(HomeworkBase):
-    theme_id: int
+    pass
 
 
 class HomeworkUpdate(HomeworkBase):

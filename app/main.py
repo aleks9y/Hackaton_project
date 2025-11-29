@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth import auth_router
 from api.courses import courses_router
 from api.themes import themes_router
+from api.homeworks import homeworks_router
 
 
 @asynccontextmanager
@@ -21,16 +22,25 @@ app = FastAPI(title="my app", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://lusciously-reliable-hermit.cloudpub.ru",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        "https://merely-factual-platy.cloudpub.ru:8080",
+        "*",  # Временно для тестирования
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(courses_router, prefix="/courses", tags=["courses"])
 app.include_router(themes_router, prefix="/themes", tags=["themes"])
+app.include_router(homeworks_router, prefix="/homeworks", tags=["homeworks"])
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)

@@ -42,9 +42,7 @@ class HomeworkRepository:
         if theme_id:
             query = query.where(Homework.theme_id == theme_id)
         if status:
-            query = query.join(HomeworkSubmission).where(
-                HomeworkSubmission.status == status
-            )
+            query = query.join(Homework).where(Homework.status == status)
 
         query = query.offset(skip).limit(limit)
         result = await session.execute(query)

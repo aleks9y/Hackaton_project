@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from database.engine import get_session
-from database.models import User, Course
+from database.models import User, Course, UserCourseAssociation
 from utils.auth import get_current_user
 from schemas.course import (
     CourseCreate,
@@ -27,9 +27,7 @@ async def my_courses(
         )
         return result.scalars().all()
 
-    res = await db.execute(
-        select(Course)
-        )
+    res = await db.execute(select(Course))
     return res.scalars().all()
 
 
@@ -95,8 +93,7 @@ async def create_course(
 
         return new_course
     raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You are not a teacher"
+        status_code=status.HTTP_403_FORBIDDEN, detail="You are not a teacher"
     )
 
 
@@ -150,3 +147,61 @@ async def delete_course(
     await db.commit()
 
     return {"detail": "Course deleted successfully"}
+
+
+@courses_router.get("/{course_id}/students")
+async def get_course_students(
+    course_id: int,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Получить студентов конкретного курса"""
+    # Проверяем что пользователь владелец курса
+    course_result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = course_result.scalar_one_or_none()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    if course.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Получаем студентов курса
+    result = await db.execute(
+        select(User)
+        .join(UserCourseAssociation, User.id == UserCourseAssociation.user_id)
+        .filter(UserCourseAssociation.course_id == course_id)
+        .filter(User.is_teacher == False)  # только студентов
+    )
+    students = result.scalars().all()
+
+    return students
+
+
+@courses_router.get("/{course_id}/students")
+async def get_course_students(
+    course_id: int,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Получить студентов конкретного курса"""
+    # Проверяем что пользователь владелец курса
+    course_result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = course_result.scalar_one_or_none()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    if course.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Получаем студентов курса
+    result = await db.execute(
+        select(User)
+        .join(UserCourseAssociation, User.id == UserCourseAssociation.user_id)
+        .filter(UserCourseAssociation.course_id == course_id)
+        .filter(User.is_teacher == False)  # только студентов
+    )
+    students = result.scalars().all()
+
+    return students

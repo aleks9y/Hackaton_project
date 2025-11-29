@@ -17,9 +17,7 @@ from config import settings
 auth_router = APIRouter()
 
 
-@auth_router.post(
-    "/register", status_code=status.HTTP_201_CREATED
-)
+@auth_router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserRegisterSchema, session: AsyncSession = Depends(get_session)
 ):

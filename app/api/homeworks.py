@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import Optional
 
 from database.engine import get_session
-from database.models import User
+from database.models import Course, Theme, User
 from schemas.homework import (
     HomeworkSchema,
     HomeworkCreate,
@@ -19,8 +21,9 @@ from utils.auth import get_current_user
 homeworks_router = APIRouter()
 
 
-@homeworks_router.post("/", response_model=HomeworkSchema)
+@homeworks_router.post("/{theme_id}")
 async def create_homework(
+    theme_id: int,
     homework_data: HomeworkCreate,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -29,13 +32,37 @@ async def create_homework(
     if current_user.is_teacher:
         raise HTTPException(status_code=403, detail="Teachers cannot create homeworks")
 
+    result = await session.execute(
+        select(Theme)
+        .options(
+            selectinload(Theme.course).selectinload(
+                Course.owner
+            )  # сразу подгружаем курс и владельца
+        )
+        .filter(Theme.id == theme_id)
+    )
+    theme = result.scalar_one_or_none()
+
+    if theme is None:
+        raise HTTPException(status_code=404, detail="Theme not found")
+
+    if not theme.is_homework:
+        raise HTTPException(
+            status_code=403, detail="You can't add homework to a topic without a task"
+        )
+
     homework = await HomeworkRepository.create_homework(
-        session, {**homework_data.model_dump(), "student_id": current_user.id}
+        session,
+        {
+            **homework_data.model_dump(),
+            "student_id": current_user.id,
+            "theme_id": theme_id,
+        },
     )
     return homework
 
 
-@homeworks_router.post("/submissions", response_model=HomeworkSubmissionCreate)
+@homeworks_router.post("/submissions")
 async def submit_homework(
     submission_data: HomeworkSubmissionCreate,
     session: AsyncSession = Depends(get_session),
@@ -51,7 +78,7 @@ async def submit_homework(
     return submission
 
 
-@homeworks_router.get("/my", response_model=list[HomeworkSchema])
+@homeworks_router.get("/my")
 async def get_my_homeworks(
     skip: int = 0,
     limit: int = 10,
@@ -68,7 +95,7 @@ async def get_my_homeworks(
     return homeworks
 
 
-@homeworks_router.get("/", response_model=list[HomeworkSchema])
+@homeworks_router.get("/")
 async def get_homeworks_for_review(
     course_id: Optional[int] = Query(None),
     theme_id: Optional[int] = Query(None),

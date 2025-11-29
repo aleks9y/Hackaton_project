@@ -130,8 +130,9 @@ class HomeworkSubmission(Base):
     teacher_comment: Mapped[Optional[str]] = mapped_column(Text)
 
     homework: Mapped["Homework"] = relationship("Homework", back_populates="submission")
-    student: Mapped["User"] = relationship("User", back_populates="homework_submissions")
-
+    student: Mapped["User"] = relationship(
+        "User", back_populates="homework_submissions"
+    )
 
 
 class File(Base):
