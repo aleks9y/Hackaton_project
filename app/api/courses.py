@@ -74,7 +74,7 @@ async def get_course(
     return course
 
 
-@courses_router.post("/courses/{course_id}/enroll")
+@courses_router.post("/{course_id}/enroll")
 async def enroll_course(
     course_id: int,
     db: AsyncSession = Depends(get_session),
