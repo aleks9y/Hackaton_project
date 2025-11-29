@@ -558,52 +558,7 @@
         .files-list-item a:hover {
             border-bottom-style: solid;
         }
-        
-        .files-list-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 6px 8px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: #f9fafb;
-            margin-bottom: 4px;
-        }
 
-        .file-delete-btn {
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 18px;
-            line-height: 1;
-            color: #6b7280;
-            padding: 2px;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: all 0.15s ease;
-        }
-
-        .file-delete-btn:hover {
-            color: #dc2626;
-            background: rgba(220, 38, 38, 0.1);
-        }
-
-        .file-link {
-            flex: 1;
-            text-decoration: none;
-            color: #3b82f6;
-            font-size: 13px;
-            border-bottom: 1px dashed rgba(59, 130, 246, 0.4);
-            padding: 2px 0;
-        }
-
-        .file-link:hover {
-            border-bottom-style: solid;
-        }
     </style>
 </head>
 

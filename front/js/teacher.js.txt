@@ -1023,23 +1023,9 @@ async function init() {
                 link.href = BASE_URL + file.url;
                 link.target = "_blank";
                 link.rel = "noreferrer";
-                link.className = "file-link";
                 link.textContent = file.filename || getFileNameFromPath(file.url);
                 
-                const deleteBtn = document.createElement("button");
-                deleteBtn.type = "button";
-                deleteBtn.className = "file-delete-btn";
-                deleteBtn.innerHTML = "×";
-                deleteBtn.setAttribute("aria-label", "Удалить файл");
-                
-                deleteBtn.addEventListener("click", async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await deleteThemeFile(file.id, themeId, listEl);
-                });
-
                 item.appendChild(link);
-                item.appendChild(deleteBtn);
                 listEl.appendChild(item);
             });
         } catch (e) {
@@ -1052,31 +1038,4 @@ async function init() {
         const parts = path.split("/");
         return parts[parts.length - 1] || path;
     }
-    async function deleteThemeFile(fileId, themeId, listEl) {
-        if (!confirm("Удалить этот файл?")) {
-            return;
-        }
-
-        try {
-            await apiFetch(`/files/${fileId}`, {
-                method: "DELETE"
-            });
-
-            if (elThemeFormMsg) {
-                elThemeFormMsg.textContent = "Файл удалён.";
-                elThemeFormMsg.className = "message-box message-success";
-            }
-
-            await loadThemeFiles(themeId, listEl);
-            
-        } catch (e) {
-            console.error("Ошибка при удалении файла:", e);
-            
-            if (elThemeFormMsg) {
-                elThemeFormMsg.textContent = "Ошибка при удалении файла: " + e.message;
-                elThemeFormMsg.className = "message-box message-error";
-            }
-        }
-    }
-
 }

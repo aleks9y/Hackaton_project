@@ -7,6 +7,8 @@ from api.auth import auth_router
 from api.courses import courses_router
 from api.themes import themes_router
 from api.homeworks import homeworks_router
+from api.files import files_router
+from api.uploads import upload_router
 
 
 @asynccontextmanager
@@ -40,6 +42,8 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(courses_router, prefix="/courses", tags=["courses"])
 app.include_router(themes_router, prefix="/themes", tags=["themes"])
 app.include_router(homeworks_router, prefix="/homeworks", tags=["homeworks"])
+app.include_router(files_router, prefix="/files", tags=["files"])
+app.include_router(upload_router, tags=["uploads"])
 
 
 if __name__ == "__main__":
