@@ -113,6 +113,9 @@ class Homework(Base):
     submission: Mapped["HomeworkSubmission"] = relationship(
         "HomeworkSubmission", back_populates="homework", cascade="all, delete-orphan"
     )
+    files: Mapped[List["File"]] = relationship(  # Добавьте эту строку
+        "File", back_populates="homework", cascade="all, delete-orphan"
+    )
 
 
 class HomeworkSubmission(Base):
@@ -140,7 +143,8 @@ class File(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     theme_id: Mapped[int] = mapped_column(ForeignKey("themes.id", ondelete="CASCADE"))
-    is_homework: Mapped[bool] = mapped_column(Boolean)
+    is_homework: Mapped[bool] = mapped_column(Boolean, default=False)
     file_path: Mapped[str] = mapped_column(Text)
 
     theme: Mapped["Theme"] = relationship("Theme", back_populates="files")
+    homework: Mapped["Homework"] = relationship("Homework", back_populates="files")

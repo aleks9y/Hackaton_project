@@ -1,5 +1,5 @@
 // Настройки
-const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru";
+const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru"; // поправь под свой бэк
 const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
@@ -353,15 +353,14 @@ async function init() {
             elHomeworkMessage.textContent = "Отправка...";
             elHomeworkMessage.className = "message-box";
 
-            // TODO: Реализовать отправку домашнего задания
-            // await apiFetch("/homeworks/submit", {
-            //     method: "POST",
-            //     headers: { "Content-Type": "application/json" },
-            //     body: JSON.stringify({
-            //         theme_id: currentTheme.id,
-            //         answer: answer
-            //     })
-            // });
+            await apiFetch(`/homeworks/${currentTheme.id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: currentTheme.name,
+                    text: answer
+                })
+            });
 
             elHomeworkMessage.textContent = "Домашнее задание отправлено на проверку!";
             elHomeworkMessage.className = "message-box message-success";
