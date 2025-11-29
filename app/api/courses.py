@@ -3,19 +3,73 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from typing import List
 
-from database.engine import SessionDep
+from database.engine import SessionDep, get_session
 from database.models import User, Course
 from repositories.product_repository import ProductRepository as Repo
 from schemas.product import ProductSchema, ProductCreateSchema
 from utils.auth import get_current_user
-from schemas.course import CourseBase, CourseCreate, CourseResponse, CourseUpdate
+from schemas.course import CourseBase, CourseCreate, CourseShortResponse, CourseUpdate, CourseDetailResponse
 from utils.auth import get_current_user
 
 
-course_router = APIRouter()
+courses_router = APIRouter()
 
 
-@course_router.post("/", response_model=CourseResponse)
+@courses_router.get("/my", response_model=List[CourseShortResponse])
+def my_courses(
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.is_teacher:
+        # курсы, которые он ведёт
+        return db.query(Course).filter(Course.owner_id == current_user.id).all()
+
+    # курсы, на которые записан студент
+    return current_user.enrolled_courses
+
+
+@courses_router.get("/{course_id}", response_model=CourseDetailResponse)
+def get_course(
+    course_id: int,
+    db: AsyncSession = Depends(get_session),
+):
+    course = (
+        db.query(Course)
+        .filter(Course.id == course_id)
+        .first()
+    )
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    return course
+
+
+@courses_router.post("/courses/{course_id}/enroll")
+def enroll_course(
+    course_id: int,
+    db: AsyncSession = Depends(get_session),
+    student: User = Depends(get_current_user)
+):
+    course = db.query(Course).filter(Course.id == course_id).first()
+
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Уже записан
+    if course in student.enrolled_courses:
+        return {"detail": "Already enrolled"}
+
+    student.enrolled_courses.append(course)
+    db.commit()
+
+    return {"detail": "Enrolled successfully"}
+
+
+
+
+#ТОЛЬКО ДЛЯ ПРЕПОДОВ
+@courses_router.post("/", response_model=CourseDetailResponse)
 def create_course(
     course_data: CourseCreate,
     db = SessionDep,
@@ -34,16 +88,7 @@ def create_course(
     return new_course
 
 
-@course_router.get("/my-courses/", response_model=List[CourseResponse])
-def get_my_courses(
-    db = SessionDep,
-    current_user: User = Depends(get_current_user)
-):
-    courses = db.query(Course).filter(Course.owner_id == current_user.id).all()
-    return courses
-
-
-@course_router.patch("/{course_id}", response_model=CourseResponse)
+@courses_router.patch("/{course_id}", response_model=CourseDetailResponse)
 def update_course(
     course_id: int,
     course_data: CourseUpdate,
@@ -69,7 +114,7 @@ def update_course(
     return course
 
 
-@course_router.delete("/courses/{course_id}")
+@courses_router.delete("/{course_id}")
 def delete_course(
     course_id: int,
     db = SessionDep,

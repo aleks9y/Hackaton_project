@@ -1,10 +1,18 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List, Optional
+
+class ThemeResponse(BaseModel):
+    id: int
+    name: str
+    text: str
+
+    class Config:
+        from_attributes = True
 
 
 class CourseBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: Optional[str]
 
 
 class CourseCreate(CourseBase):
@@ -16,9 +24,18 @@ class CourseUpdate(BaseModel):
     description: Optional[str] = None
 
 
-class CourseResponse(CourseBase):
+class CourseShortResponse(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
+class CourseDetailResponse(CourseBase):
     id: int
     owner_id: int
+    themes: List[ThemeResponse]
 
     class Config:
         from_attributes = True
