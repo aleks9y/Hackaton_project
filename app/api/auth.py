@@ -18,11 +18,11 @@ auth_router = APIRouter()
 
 
 @auth_router.post(
-    "/register", response_model=UserSchema, status_code=status.HTTP_201_CREATED
+    "/register", status_code=status.HTTP_201_CREATED
 )
 async def register(
     user_data: UserRegisterSchema, session: AsyncSession = Depends(get_session)
-) -> User:
+):
     existing_user = await UserRepository.get_user_by_email(session, user_data.email)
     if existing_user:
         raise HTTPException(
@@ -72,6 +72,6 @@ async def logout(response: Response):
     return {"message": "Successfully logged out"}
 
 
-@auth_router.get("/me", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+@auth_router.get("/me", status_code=status.HTTP_201_CREATED)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user

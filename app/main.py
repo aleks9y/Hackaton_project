@@ -4,12 +4,13 @@ from contextlib import asynccontextmanager
 from database.engine import create_db, drop_db
 from fastapi.middleware.cors import CORSMiddleware
 from api.auth import auth_router
-from app.api.courses import courses_router
+from api.courses import courses_router
+from api.themes import themes_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    run_param = True
+    run_param = False
     if run_param:
         await drop_db()
     await create_db()
@@ -27,7 +28,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(courses_router, prefix="/courses", tags=["course"])
+app.include_router(courses_router, prefix="/courses", tags=["courses"])
+app.include_router(themes_router, prefix="/themes", tags=["themes"])
 
 
 if __name__ == "__main__":

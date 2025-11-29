@@ -14,7 +14,7 @@ class UserRegisterSchema(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    isTeacher: bool
+    is_teacher: bool
 
     model_config = ConfigDict(extra="forbid")
 

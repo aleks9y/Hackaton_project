@@ -119,6 +119,7 @@ class HomeworkSubmission(Base):
     __tablename__ = "homework_submissions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     homework_id: Mapped[int] = mapped_column(
         ForeignKey("homeworks.id", ondelete="CASCADE")
     )
@@ -129,7 +130,8 @@ class HomeworkSubmission(Base):
     teacher_comment: Mapped[Optional[str]] = mapped_column(Text)
 
     homework: Mapped["Homework"] = relationship("Homework", back_populates="submission")
-    student: Mapped["User"] = relationship("User", back_populates="homeworks")
+    student: Mapped["User"] = relationship("User", back_populates="homework_submissions")
+
 
 
 class File(Base):

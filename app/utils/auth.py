@@ -64,8 +64,7 @@ async def set_access_token_cookie(
         httponly=False,
         max_age=expires_days * 24 * 60 * 60,
         path="/",
-        secure=False,
-        domain="127.0.0.1",
+        secure=False
     )
 
     print("✅ Кука должна быть установлена")

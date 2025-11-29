@@ -1,43 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
-from typing import List
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
-from database.engine import SessionDep, get_session
+from database.engine import get_session
 from database.models import User, Course
-from repositories.product_repository import ProductRepository as Repo
-from schemas.product import ProductSchema, ProductCreateSchema
 from utils.auth import get_current_user
-from schemas.course import CourseBase, CourseCreate, CourseShortResponse, CourseUpdate, CourseDetailResponse
-from utils.auth import get_current_user
-
+from schemas.course import (
+    CourseCreate,
+    CourseShortResponse,
+    CourseUpdate,
+    CourseDetailResponse,
+)
 
 courses_router = APIRouter()
 
 
-@courses_router.get("/my", response_model=List[CourseShortResponse])
-def my_courses(
+@courses_router.get("/my", response_model=list[CourseShortResponse])
+async def my_courses(
     db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.is_teacher:
-        # курсы, которые он ведёт
-        return db.query(Course).filter(Course.owner_id == current_user.id).all()
+        result = await db.execute(
+            select(Course).filter(Course.owner_id == current_user.id)
+        )
+        return result.scalars().all()
 
-    # курсы, на которые записан студент
-    return current_user.enrolled_courses
+    # Для студента сразу подгружаем курсы
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.enrolled_courses))
+        .filter(User.id == current_user.id)
+    )
+    user = result.scalar_one()
+    return user.enrolled_courses
 
 
 @courses_router.get("/{course_id}", response_model=CourseDetailResponse)
-def get_course(
+async def get_course(
     course_id: int,
     db: AsyncSession = Depends(get_session),
 ):
-    course = (
-        db.query(Course)
-        .filter(Course.id == course_id)
-        .first()
-    )
+    result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = result.scalar_one_or_none()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -46,33 +52,31 @@ def get_course(
 
 
 @courses_router.post("/courses/{course_id}/enroll")
-def enroll_course(
+async def enroll_course(
     course_id: int,
     db: AsyncSession = Depends(get_session),
-    student: User = Depends(get_current_user)
+    student: User = Depends(get_current_user),
 ):
-    course = db.query(Course).filter(Course.id == course_id).first()
+    result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = result.scalar_one_or_none()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    # Уже записан
+    await db.refresh(student)  # чтобы подгрузить enrolled_courses
     if course in student.enrolled_courses:
         return {"detail": "Already enrolled"}
 
     student.enrolled_courses.append(course)
-    db.commit()
+    await db.commit()
 
     return {"detail": "Enrolled successfully"}
 
 
-
-
-#ТОЛЬКО ДЛЯ ПРЕПОДОВ
-@courses_router.post("/", response_model=CourseDetailResponse)
-def create_course(
+@courses_router.post("")
+async def create_course(
     course_data: CourseCreate,
-    db=SessionDep,
+    db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
     new_course = Course(
@@ -82,20 +86,21 @@ def create_course(
     )
 
     db.add(new_course)
-    db.commit()
-    db.refresh(new_course)
+    await db.commit()
+    await db.refresh(new_course)
 
     return new_course
 
 
 @courses_router.patch("/{course_id}", response_model=CourseDetailResponse)
-def update_course(
+async def update_course(
     course_id: int,
     course_data: CourseUpdate,
-    db=SessionDep,
+    db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    course = db.query(Course).filter(Course.id == course_id).first()
+    result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = result.scalar_one_or_none()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -110,17 +115,20 @@ def update_course(
     if course_data.description is not None:
         course.description = course_data.description
 
-    db.commit()
-    db.refresh(course)
+    await db.commit()
+    await db.refresh(course)
 
     return course
 
 
 @courses_router.delete("/{course_id}")
-def delete_course(
-    course_id: int, db=SessionDep, current_user: User = Depends(get_current_user)
+async def delete_course(
+    course_id: int,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    course = db.query(Course).filter(Course.id == course_id).first()
+    result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = result.scalar_one_or_none()
 
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -130,7 +138,7 @@ def delete_course(
             status_code=403, detail="You are not the owner of this course"
         )
 
-    db.delete(course)
-    db.commit()
+    await db.delete(course)
+    await db.commit()
 
     return {"detail": "Course deleted successfully"}
