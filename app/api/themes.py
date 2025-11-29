@@ -27,8 +27,6 @@ def get_themes(
     return themes
 
 
-
-
 #ТОЛЬКО ПРЕПОДУ
 @themes_router.post("/{course_id}", response_model=ThemeResponse)
 def create_theme(
