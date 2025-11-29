@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Кабинет студента</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --bg: #f5f6fb;
+            --card-bg: #ffffff;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --radius-lg: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .page-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .app-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .app-subtitle {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .user-mini {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .user-mini-name {
+            font-weight: 500;
+        }
+
+        .user-mini-role {
+            color: var(--muted);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            gap: 6px;
+            transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 8px 18px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            box-shadow: none;
+            padding-inline: 10px;
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+            box-shadow: none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: 999px;
+            background: #e5f0ff;
+            color: #1d4ed8;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 20px 20px 18px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .card + .card {
+            margin-top: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }.card-subtitle {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 11px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            outline: none;
+            background: #f9fafb;
+            transition: border 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+            background: #fff;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row > .form-group {
+            flex: 1;
+        }
+
+        .form-footer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .muted-text {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .page-section {
+            margin-top: 24px;
+        }
+
+        .tabs {
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 3px;
+            background: #e5e7eb;
+        }
+
+        .tab {
+            padding: 6px 14px;
+            font-size: 13px;
+            border-radius: 999px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+
+        .tab-active {
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+        }
+
+        .layout-two-cols {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr);
+            gap: 18px;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .search-row .form-control {
+            flex: 1;
+        }
+
+        .link {
+            font-size: 13px;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .courses-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .course-card {
+            border-radius: 12px;
+            padding: 10px 11px 9px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: default;
+        }
+
+        .course-card-main {
+            max-width: 70%;
+        }
+
+        .course-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .course-desc {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .course-meta {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .pill {
+            display: inline-flex;
+            padding: 3px 8px;
+            font-size: 11px;
+            border-radius: 999px;
+            background: #ecfeff;
+            color: #0891b2;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            width: 60%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        .chip-row {
+            margin-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 3px 8px;
+            font-size: 11px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #4f46e5;
+        }.themes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .theme-item {
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .theme-item-active {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .theme-title {
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+
+        .theme-type {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .text-block {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #111827;
+        }
+
+        .text-block + .text-block {
+            margin-top: 10px;
+        }
+
+        .textarea {
+            width: 100%;
+            min-height: 90px;
+            resize: vertical;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+            background: #fff;
+        }
+
+        .files-input {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .grade-block {
+            border-radius: 10px;
+            padding: 8px 10px;
+            background: #f9fafb;
+            border: 1px dashed var(--border);
+            font-size: 13px;
+        }
+
+        .grade-score {
+            font-weight: 500;
+            color: #0f766e;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .message-box {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .message-error {
+            color: var(--danger);
+        }
+
+        .message-success {
+            color: var(--success);
+        }
+
+        @media (max-width: 900px) {
+            .layout-two-cols {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .user-mini {
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+    <header class="app-header">
+        <div class="app-logo">
+            <div class="app-logo-mark"></div>
+            <div>
+                <div class="app-title">Учебная платформа</div>
+                <div class="app-subtitle">Личный кабинет студента</div>
+            </div>
+        </div>
+
+        <div class="user-mini">
+            <span class="user-mini-name" id="user-name">Загрузка...</span>
+            <span class="user-mini-role" id="user-role">Проверка роли</span>
+            <button class="btn btn-sm btn-secondary" id="logout-btn" type="button">Выйти</button>
+        </div>
+    </header>
+
+    <div class="message-box" id="global-message"></div>
+
+    <!-- 1. Личный кабинет студента -->
+    <section class="page-section" id="page-student-dashboard">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Мои курсы и поиск</div>
+                    <div class="card-subtitle">Записывайтесь на курсы и продолжайте обучение</div>
+                </div>
+            </div>
+
+            <div class="layout-two-cols">
+                <!-- Поиск курсов -->
+                <div>
+                    <h3 class="card-title" style="margin-bottom: 8px;">Поиск курсов</h3>
+                    <p class="card-subtitle" style="margin-bottom: 10px;">
+                        Найдите нужный курс. Если курс уже записан, вы сможете перейти в него.
+                    </p><div class="search-row">
+                        <input class="form-control" id="search-input" type="text" placeholder="Название курса или автор">
+                        <button class="btn btn-sm" type="button" id="search-btn">Найти</button>
+                    </div>
+
+                    <div class="muted-text">
+                        Не нашли нужный курс по запросу?
+                        <span class="link" id="show-all-link">показать все доступные курсы</span>.
+                    </div>
+
+                    <div class="courses-list" id="all-courses-list">
+                        <!-- JS подставит карточки -->
+                    </div>
+
+                    <div class="pagination" id="pagination">
+                        <!-- Можно добавить пагинацию потом -->
+                    </div>
+
+                    <div class="message-box" id="all-courses-message"></div>
+                </div>
+
+                <!-- Мои курсы -->
+                <div>
+                    <h3 class="card-title" style="margin-bottom: 8px;">Мои курсы</h3>
+                    <p class="card-subtitle" style="margin-bottom: 10px;">
+                        Курсы, на которые вы уже записались.
+                    </p>
+
+                    <div class="courses-list" id="my-courses-list">
+                        <!-- JS подставит карточки -->
+                    </div>
+
+                    <div class="chip-row">
+                        <span class="chip">Все</span>
+                        <span class="chip">В процессе</span>
+                        <span class="chip">Завершенные</span>
+                    </div>
+
+                    <div class="message-box" id="my-courses-message"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Страница конкретного курса -->
+    <section class="page-section" id="page-course-detail" style="display:none;">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title" id="course-title">Курс</div>
+                    <div class="card-subtitle" id="course-meta"></div>
+                </div>
+                <span class="pill" id="course-progress">Прогресс: нет данных</span>
+            </div>
+
+            <div class="layout-two-cols">
+                <!-- Список тем -->
+                <div>
+                    <h3 class="card-title" style="margin-bottom: 8px;">Темы курса</h3>
+                    <p class="card-subtitle" style="margin-bottom: 8px;">
+                        Нажмите на тему, чтобы посмотреть материалы и отправить домашнее задание.
+                    </p>
+
+                    <div class="themes-list" id="themes-list">
+                        <!-- JS подставит темы -->
+                    </div>
+
+                    <div class="message-box" id="themes-message"></div>
+
+                    <button class="btn btn-sm btn-secondary" type="button" id="back-to-dashboard" style="margin-top:10px;">
+                        ← Назад к списку курсов
+                    </button>
+                </div>
+
+                <!-- Контент темы и домашка -->
+                <div>
+                    <h3 class="card-title" style="margin-bottom: 8px;" id="theme-title-heading">
+                        Тема
+                    </h3>
+
+                    <div class="text-block" id="theme-text">
+                        Выберите тему слева, чтобы увидеть материалы.
+                    </div><div class="page-section" id="homework-section" style="display:none;">
+                        <div class="card-subtitle" style="margin-bottom: 6px;">Ваш ответ</div>
+                        <textarea class="textarea" id="homework-answer" placeholder="Опишите решение или вставьте код"></textarea>
+                        <div class="form-group" style="margin-top: 8px;">
+                            <label class="form-label" for="hw-file">Прикрепить файлы (визуально, без логики)</label>
+                            <input id="hw-file" type="file" multiple class="files-input">
+                        </div>
+                        <button class="btn btn-sm" type="button" id="btn-send-homework">Отправить на проверку</button>
+
+                        <div class="message-box" id="homework-message"></div>
+                    </div>
+
+                    <div class="page-section" id="teacher-answer-section" style="display:none;">
+                        <div class="card-subtitle" style="margin-bottom: 6px;">Ответ преподавателя</div>
+                        <div class="grade-block" id="teacher-answer-block">
+                            <!-- JS подставит ответ/оценку, если добавишь эндпоинт -->
+                            Пока нет данных по проверке.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script src="/front/js/student.js"></script>
+</body>
+</html>

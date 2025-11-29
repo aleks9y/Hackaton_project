@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth import auth_router
 from api.courses import courses_router
 from api.themes import themes_router
+from api.users import users_router
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(courses_router, prefix="/courses", tags=["courses"])
 app.include_router(themes_router, prefix="/themes", tags=["themes"])
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 
 if __name__ == "__main__":
