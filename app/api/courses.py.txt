@@ -27,7 +27,9 @@ async def my_courses(
         )
         return result.scalars().all()
 
-    res = await db.execute(select(Course))
+    res = await db.execute(
+        select(Course)
+        )
     return res.scalars().all()
 
 
@@ -35,16 +37,18 @@ async def my_courses(
 async def get_course_students(
     course_id: int,
     db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """Получить студентов конкретного курса"""
     # Проверяем что пользователь владелец курса
-    course_result = await db.execute(select(Course).filter(Course.id == course_id))
+    course_result = await db.execute(
+        select(Course).filter(Course.id == course_id)
+    )
     course = course_result.scalar_one_or_none()
-
+    
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-
+    
     if course.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
@@ -56,9 +60,8 @@ async def get_course_students(
         .filter(User.is_teacher == False)  # только студентов
     )
     students = result.scalars().all()
-
+    
     return students
-
 
 @courses_router.get("/{course_id}")
 async def get_course(
@@ -122,7 +125,8 @@ async def create_course(
 
         return new_course
     raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN, detail="You are not a teacher"
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You are not a teacher"
     )
 
 
@@ -178,59 +182,46 @@ async def delete_course(
     return {"detail": "Course deleted successfully"}
 
 
-@courses_router.get("/{course_id}/students")
-async def get_course_students(
+@courses_router.get("/{course_id}/stats")
+async def get_course_statistics(
     course_id: int,
     db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
-    """Получить студентов конкретного курса"""
-    # Проверяем что пользователь владелец курса
-    course_result = await db.execute(select(Course).filter(Course.id == course_id))
+    """Получить статистику по курсу"""
+    # Проверка прав доступа
+    course_result = await db.execute(
+        select(Course).filter(Course.id == course_id)
+    )
     course = course_result.scalar_one_or_none()
-
+    
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-
-    if course.owner_id != current_user.id:
+    
+    if course.owner_id != current_user.id and not current_user.is_teacher:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # Получаем студентов курса
-    result = await db.execute(
-        select(User)
-        .join(UserCourseAssociation, User.id == UserCourseAssociation.user_id)
-        .filter(UserCourseAssociation.course_id == course_id)
-        .filter(User.is_teacher == False)  # только студентов
+    # Статистика по домашним заданиям
+    homework_stats = await db.execute(
+        select(
+            Homework.status,
+            func.count(Homework.id)
+        )
+        .join(Theme)
+        .filter(Theme.course_id == course_id)
+        .group_by(Homework.status)
     )
-    students = result.scalars().all()
-
-    return students
-
-
-@courses_router.get("/{course_id}/students")
-async def get_course_students(
-    course_id: int,
-    db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """Получить студентов конкретного курса"""
-    # Проверяем что пользователь владелец курса
-    course_result = await db.execute(select(Course).filter(Course.id == course_id))
-    course = course_result.scalar_one_or_none()
-
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-
-    if course.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    # Получаем студентов курса
-    result = await db.execute(
-        select(User)
-        .join(UserCourseAssociation, User.id == UserCourseAssociation.user_id)
+    
+    # Количество студентов
+    students_count = await db.execute(
+        select(func.count(UserCourseAssociation.user_id))
         .filter(UserCourseAssociation.course_id == course_id)
-        .filter(User.is_teacher == False)  # только студентов
     )
-    students = result.scalars().all()
-
-    return students
+    
+    return {
+        "homeworks_by_status": dict(homework_stats.all()),
+        "students_count": students_count.scalar(),
+        "themes_count": await db.scalar(
+            select(func.count(Theme.id)).filter(Theme.course_id == course_id)
+        )
+    }
