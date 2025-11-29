@@ -1,17 +1,22 @@
 const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
-const LOGIN_PAGE = "/front/templates/index.html";             // сюда отправляем после выхода
+const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
 let currentUser = null;
-let studentsList = [];
 let coursesList = [];
+let themesByCourse = {};      // { courseId:number: Theme[] }
+let studentsList = [];        // все уникальные студенты
+let studentsByCourse = {};    // { courseId:number: Student[] }
 let currentCourseId = null;
 let currentCourse = null;
-let themesByCourse = {}; // { courseId: [themes] }
 let currentThemeId = null;
 let currentTheme = null;
 
-// Утилита для запросов
+// для модалки ДЗ
+let currentHomeworkId = null;
+let lastLoadedHomeworks = []; // кеш списка ДЗ, чтобы в модалке было, что показать
+
+// Утилита запросов
 async function apiFetch(path, options = {}) {
     const res = await fetch(BASE_URL + path, {
         credentials: "include",
@@ -32,13 +37,12 @@ async function apiFetch(path, options = {}) {
     return data;
 }
 
-// Инициализация после загрузки DOM
 document.addEventListener("DOMContentLoaded", () => {
     init();
 });
 
 async function init() {
-    // DOM элементы шапки
+    // Шапка
     const elUserName = document.getElementById("user-name");
     const elUserRole = document.getElementById("user-role");
     const elLogoutBtn = document.getElementById("logout-btn");
@@ -64,7 +68,7 @@ async function init() {
         });
     });
 
-    // DOM: Мои ученики / домашки
+    // Блок "Мои ученики / Домашки"
     const elStudentsTableBody = document.querySelector("#students-table tbody");
     const elStudentsMsg = document.getElementById("students-message");
 
@@ -76,20 +80,20 @@ async function init() {
     const elHomeworksTableBody = document.querySelector("#homeworks-table tbody");
     const elHomeworksMsg = document.getElementById("homeworks-message");
 
-    // DOM: курсы/темы (левая часть)
+    // Блок "Мои курсы и темы"
     const elBtnAddCourse = document.getElementById("btn-add-course");
     const elCoursesList = document.getElementById("courses-list");
     const elThemesList = document.getElementById("themes-list");
     const elThemesMsg = document.getElementById("themes-message");
 
-    // DOM: редактор курса
+    // Редактор курса
     const elCourseName = document.getElementById("course-name");
     const elCourseDesc = document.getElementById("course-description");
     const elBtnSaveCourse = document.getElementById("btn-save-course");
     const elBtnDeleteCourse = document.getElementById("btn-delete-course");
     const elCourseFormMsg = document.getElementById("course-form-message");
 
-    // DOM: редактор темы
+    // Редактор темы
     const elThemeName = document.getElementById("theme-name");
     const elThemeText = document.getElementById("theme-text");
     const elThemeIsHomework = document.getElementById("theme-is-homework");
@@ -99,22 +103,157 @@ async function init() {
     const elBtnDeleteTheme = document.getElementById("btn-delete-theme");
     const elThemeFormMsg = document.getElementById("theme-form-message");
 
-    // Обработчики выхода
+    // Модалка ДЗ
+    const elHwModal = document.getElementById("homework-modal");
+    const elHwModalTitle = document.getElementById("modal-hw-title");
+    const elHwModalStudent = document.getElementById("modal-hw-student");
+    const elHwModalStatus = document.getElementById("modal-hw-status");
+    const elHwModalText = document.getElementById("modal-hw-text");
+    const elHwModalScore = document.getElementById("modal-hw-score");
+    const elHwModalScoreValue = document.getElementById("modal-hw-score-value");
+    const elHwModalComment = document.getElementById("modal-hw-comment");
+    const elHwModalMsg = document.getElementById("modal-hw-message");
+    const elHwModalSaveBtn = document.getElementById("modal-hw-save");
+    const elHwModalCancelBtn = document.getElementById("modal-hw-cancel");
+    const elHwModalCloseBtn = document.getElementById("modal-hw-close");
+
+    function openHomeworkModal(hw) {
+        if (!hw) return;
+        currentHomeworkId = hw.id;
+
+        // курс / тема / студент
+        const student = studentsList.find(s => s.id === hw.student_id);
+
+        elHwModalTitle.textContent = hw.title || "Домашнее задание";
+
+        elHwModalStudent.textContent = student
+            ? (student.full_name || student.email || `ID ${student.id}`)
+            : (hw.student_id ? `ID ${hw.student_id}` : "—");
+
+        // статус
+        elHwModalStatus.innerHTML = "";
+        const statusSpan = document.createElement("span");
+        statusSpan.className = "pill-status";
+        const status = hw.status || "pending";
+        if (status === "graded") {
+            statusSpan.textContent = "Проверено";
+            statusSpan.classList.add("pill-status-success");
+        } else if (status === "pending") {
+            statusSpan.textContent = "На проверке";
+            statusSpan.classList.add("pill-status-pending");
+        } else {
+            statusSpan.textContent = status;
+        }
+        elHwModalStatus.appendChild(statusSpan);
+
+        // текст ответа
+        elHwModalText.textContent = hw.text || "Текст ответа не указан.";
+
+        // оценка / комментарий
+        let initialScore = 0;
+        let initialComment = "";
+
+        if (typeof hw.score === "number") {
+            initialScore = hw.score;
+        } else if (hw.submission && typeof hw.submission.score === "number") {
+            initialScore = hw.submission.score;
+        }
+
+        if (typeof hw.teacher_comment === "string") {
+            initialComment = hw.teacher_comment;
+        } else if (hw.submission && typeof hw.submission.teacher_comment === "string") {
+            initialComment = hw.submission.teacher_comment;
+        }
+
+        if (!initialScore || initialScore < 1 || initialScore > 10) {
+            initialScore = 10;
+        }
+
+        elHwModalScore.value = String(initialScore);
+        elHwModalScoreValue.textContent = `${initialScore}/10`;
+
+        elHwModalComment.value = initialComment || "";
+
+        elHwModalMsg.textContent = "";
+        elHwModalMsg.className = "message-box";
+
+        elHwModal.classList.add("open");
+    }
+
+    function closeHomeworkModal() {
+        currentHomeworkId = null;
+        elHwModal.classList.remove("open");
+    }
+
+    elHwModalScore.addEventListener("input", () => {
+        const val = Number(elHwModalScore.value || 0);
+        if (val) {
+            elHwModalScoreValue.textContent = `${val}/10`;
+        } else {
+            elHwModalScoreValue.textContent = "—";
+        }
+    });
+
+    elHwModalSaveBtn.addEventListener("click", async () => {
+        if (!currentHomeworkId) return;
+
+        const score = Number(elHwModalScore.value || 0);
+        const teacher_comment = elHwModalComment.value.trim();
+
+        elHwModalMsg.textContent = "";
+        elHwModalMsg.className = "message-box";
+
+        if (!score || score < 1 || score > 10) {
+            elHwModalMsg.textContent = "Оценка должна быть от 1 до 10.";
+            elHwModalMsg.className = "message-box message-error";
+            return;
+        }
+
+        try {
+            await apiFetch(`/homeworks/${currentHomeworkId}/grade`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ score, teacher_comment })
+            });
+
+            elHwModalMsg.textContent = "Оценка сохранена.";
+            elHwModalMsg.className = "message-box message-success";
+
+            // обновим список ДЗ, чтобы статус/оценка обновились
+            await loadHomeworks();
+        } catch (e) {
+            elHwModalMsg.textContent = "Ошибка при сохранении оценки: " + e.message;
+            elHwModalMsg.className = "message-box message-error";
+        }
+    });
+
+    elHwModalCancelBtn.addEventListener("click", closeHomeworkModal);
+    elHwModalCloseBtn.addEventListener("click", closeHomeworkModal);
+    elHwModal.addEventListener("click", (e) => {
+        if (e.target === elHwModal) {
+            closeHomeworkModal();
+        }
+    });
+
+    // Логаут
     elLogoutBtn.addEventListener("click", async () => {
         try {
-            await apiFetch("/logout", { method: "POST", credentials: "include" });
-        } catch (_) {
-            // игнорируем, всё равно уходим
-        }
+            await apiFetch("/logout", { method: "POST" });
+        } catch (_) {}
         window.location.href = LOGIN_PAGE;
     });
 
-    // Обновление списка домашек по фильтрам
+    // Фильтр "Курс" (иерархия)
+    elFilterCourse.addEventListener("change", () => {
+        handleCourseFilterChange();
+    });
+
+    // Применить фильтры
     elBtnApplyFilters.addEventListener("click", () => {
         loadHomeworks();
     });
 
-    // "Создать курс" — переводим форму справа в режим создания
+    // "Создать курс"
     elBtnAddCourse.addEventListener("click", () => {
         currentCourseId = null;
         currentCourse = null;
@@ -125,7 +264,7 @@ async function init() {
         document.querySelectorAll(".course-item").forEach(el => el.classList.remove("active"));
     });
 
-    // Сохранить курс (создание или обновление)
+    // Сохранить курс
     elBtnSaveCourse.addEventListener("click", async () => {
         const name = elCourseName.value.trim();
         const description = elCourseDesc.value.trim();
@@ -142,7 +281,6 @@ async function init() {
         try {
             let saved;
             if (currentCourseId) {
-                // редактирование
                 saved = await apiFetch(`/courses/${currentCourseId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
@@ -150,7 +288,6 @@ async function init() {
                 });
                 elCourseFormMsg.textContent = "Курс обновлён.";
             } else {
-                // создание
                 saved = await apiFetch("/courses", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -161,6 +298,7 @@ async function init() {
             elCourseFormMsg.className = "message-box message-success";
 
             await loadCourses();
+            await loadStudents(); // чтобы обновить привязки студентов к курсам
 
             if (saved && saved.id) {
                 currentCourseId = saved.id;
@@ -197,15 +335,19 @@ async function init() {
             clearThemeForm(true);
 
             await loadCourses();
-            await loadHomeworks();
             await loadStudents();
+            await loadHomeworks();
+
+            // сброс фильтра курса
+            elFilterCourse.value = "";
+            await handleCourseFilterChange();
         } catch (e) {
             elCourseFormMsg.textContent = "Ошибка при удалении курса: " + e.message;
             elCourseFormMsg.className = "message-box message-error";
         }
     });
 
-    // Сохранить тему (создание / редактирование)
+    // Сохранить тему
     elBtnSaveTheme.addEventListener("click", async () => {
         if (!currentCourseId) {
             elThemeFormMsg.textContent = "Сначала выберите курс.";
@@ -230,7 +372,6 @@ async function init() {
             let savedTheme;
 
             if (currentThemeId) {
-                // РЕДАКТИРОВАНИЕ темы
                 savedTheme = await apiFetch(`/themes/theme/${currentThemeId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
@@ -238,7 +379,6 @@ async function init() {
                 });
                 elThemeFormMsg.textContent = "Тема обновлена.";
             } else {
-                // СОЗДАНИЕ новой темы
                 savedTheme = await apiFetch(`/themes/${currentCourseId}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -249,19 +389,10 @@ async function init() {
 
             elThemeFormMsg.className = "message-box message-success";
 
-            // TODO: загрузка файлов (если нужен upload — сделать отдельный эндпоинт)
-            if (elThemeFiles.files.length > 0 && savedTheme && savedTheme.id) {
-                // Примерный шаблон:
-                // const fd = new FormData();
-                // Array.from(elThemeFiles.files).forEach(f => fd.append("files", f));
-                // await fetch(BASE_URL + `/themes/${savedTheme.id}/files`, {
-                //     method: "POST",
-                //     body: fd,
-                //     credentials: "include"
-                // });
-            }
+            // TODO: загрузка файлов на отдельный эндпоинт, если понадобится
 
             await loadThemes(currentCourseId);
+            await rebuildThemeFilter(getSelectedCourseIdFromFilter());
             await loadHomeworks();
 
             if (savedTheme && savedTheme.id) {
@@ -273,7 +404,7 @@ async function init() {
         }
     });
 
-    // Очистить форму темы (и сбросить выбор)
+    // Очистить форму темы
     elBtnClearTheme.addEventListener("click", () => {
         clearThemeForm(true);
     });
@@ -285,6 +416,7 @@ async function init() {
             elThemeFormMsg.className = "message-box message-error";
             return;
         }
+
         const ok = confirm("Удалить тему?");
         if (!ok) return;
 
@@ -299,7 +431,9 @@ async function init() {
             currentThemeId = null;
             currentTheme = null;
             clearThemeForm(true);
+
             await loadThemes(currentCourseId);
+            await rebuildThemeFilter(getSelectedCourseIdFromFilter());
             await loadHomeworks();
         } catch (e) {
             elThemeFormMsg.textContent = "Ошибка при удалении темы: " + e.message;
@@ -307,7 +441,8 @@ async function init() {
         }
     });
 
-    // Основной сценарий: профиль -> загрузки
+    // ============ Основная инициализация ============
+
     try {
         elGlobalMsg.textContent = "Загрузка профиля...";
         currentUser = await apiFetch("/auth/me");
@@ -322,90 +457,19 @@ async function init() {
 
         elGlobalMsg.textContent = "";
 
-        await Promise.all([
-            loadStudents(),
-            loadCourses(),
-            loadHomeworks()
-        ]);
+        await loadCourses();
+        await loadStudents();
+        await loadHomeworks();
+        await handleCourseFilterChange(); // чтобы корректно отрисовать фильтры при старте
     } catch (e) {
         elGlobalMsg.textContent = "Ошибка: " + e.message;
     }
 
-    // ================= ФУНКЦИИ ЗАГРУЗКИ =================
-
-    async function loadStudents() {
-        elStudentsMsg.textContent = "Загрузка студентов...";
-        elStudentsMsg.className = "message-box";
-        elStudentsTableBody.innerHTML = "";
-        elFilterStudent.innerHTML = '<option value="">Студент: все</option>';
-
-        try {
-            const courses = await apiFetch("/courses/my");
-
-            if (!Array.isArray(courses) || courses.length === 0) {
-                elStudentsMsg.textContent = "У вас пока нет курсов.";
-                elStudentsMsg.className = "message-box";
-                return;
-            }
-
-            studentsList = [];
-
-            for (const course of courses) {
-                try {
-                    const courseStudents = await apiFetch(`/courses/${course.id}/students`);
-                    if (Array.isArray(courseStudents)) {
-                        courseStudents.forEach(student => {
-                            if (!studentsList.find(s => s.id === student.id)) {
-                                studentsList.push(student);
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error(`Ошибка загрузки студентов курса ${course.id}:`, e);
-                }
-            }
-
-            if (studentsList.length === 0) {
-                elStudentsMsg.textContent = "На ваших курсах пока нет студентов.";
-                elStudentsMsg.className = "message-box";
-                return;
-            }
-
-            studentsList.forEach(student => {
-                const tr = document.createElement("tr");
-
-                const tdName = document.createElement("td");
-                const tdEmail = document.createElement("td");
-
-                const initials = getInitials(student.full_name || student.email || "");
-                const avatar = document.createElement("span");
-                avatar.className = "avatar-circle";
-                avatar.textContent = initials || "?";
-
-                tdName.appendChild(avatar);
-                tdName.appendChild(document.createTextNode(student.full_name || "Без имени"));
-                tdEmail.textContent = student.email || "";
-
-                tr.appendChild(tdName);
-                tr.appendChild(tdEmail);
-                elStudentsTableBody.appendChild(tr);
-
-                const opt = document.createElement("option");
-                opt.value = student.id;
-                elFilterStudent.appendChild(opt);
-            });
-
-            elStudentsMsg.textContent = `Загружено ${studentsList.length} студентов`;
-            elStudentsMsg.className = "message-box message-success";
-
-        } catch (e) {
-            console.error('Ошибка загрузки студентов:', e);
-            elStudentsMsg.textContent = "Ошибка загрузки студентов: " + e.message;
-            elStudentsMsg.className = "message-box message-error";
-        }
-    }
+    // ============ ЛОГИКА ЗАГРУЗКИ ДАННЫХ ============
 
     async function loadCourses() {
+        const elCoursesList = document.getElementById("courses-list");
+
         elCoursesList.innerHTML = "";
         elThemesList.innerHTML = "";
         elThemesMsg.textContent = "";
@@ -459,6 +523,318 @@ async function init() {
         }
     }
 
+    async function loadStudents() {
+        studentsByCourse = {};
+        studentsList = [];
+
+        elStudentsMsg.textContent = "Загрузка студентов...";
+        elStudentsMsg.className = "message-box";
+        elStudentsTableBody.innerHTML = "";
+        elFilterStudent.innerHTML = '<option value="">Студент: все</option>';
+
+        try {
+            const courses = await apiFetch("/courses/my");
+
+            if (!Array.isArray(courses) || courses.length === 0) {
+                elStudentsMsg.textContent = "У вас пока нет курсов.";
+                elStudentsMsg.className = "message-box";
+                return;
+            }
+
+            for (const course of courses) {
+                try {
+                    const courseStudents = await apiFetch(`/courses/${course.id}/students`);
+                    studentsByCourse[course.id] = Array.isArray(courseStudents) ? courseStudents : [];
+
+                    studentsByCourse[course.id].forEach(student => {
+                        if (!studentsList.find(s => s.id === student.id)) {
+                            studentsList.push(student);
+                        }
+                    });
+                } catch (err) {
+                    console.error(`Ошибка загрузки студентов курса ${course.id}:`, err);
+                    studentsByCourse[course.id] = [];
+                }
+            }
+
+            const selectedCourseId = getSelectedCourseIdFromFilter();
+            renderStudentsTable(selectedCourseId);
+            populateStudentFilter(selectedCourseId);
+
+            if (studentsList.length > 0) {
+                elStudentsMsg.textContent = `Загружено ${studentsList.length} студентов`;
+                elStudentsMsg.className = "message-box message-success";
+            } else {
+                elStudentsMsg.textContent = "На ваших курсах пока нет студентов.";
+                elStudentsMsg.className = "message-box";
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки студентов:", e);
+            elStudentsMsg.textContent = "Ошибка загрузки студентов: " + e.message;
+            elStudentsMsg.className = "message-box message-error";
+        }
+    }
+
+    async function loadThemes(courseId) {
+        elThemesList.innerHTML = "";
+        elThemesMsg.textContent = "Загрузка тем...";
+        elThemesMsg.className = "message-box";
+
+        try {
+            const themes = await apiFetch(`/themes/${courseId}`);
+            themesByCourse[courseId] = themes;
+
+            if (!Array.isArray(themes) || themes.length === 0) {
+                elThemesList.innerHTML = '<span class="muted-text">Тем пока нет.</span>';
+                elThemesMsg.textContent = "";
+                return;
+            }
+
+            elThemesList.innerHTML = "";
+
+            themes.forEach(theme => {
+                const item = document.createElement("div");
+                item.className = "theme-item";
+                item.dataset.themeId = theme.id;
+                item.dataset.courseId = courseId;
+
+                const main = document.createElement("div");
+                main.className = "theme-item-main";
+
+                const title = document.createElement("div");
+                title.className = "theme-item-title";
+                title.textContent = theme.name || ("Тема #" + theme.id);
+
+                main.appendChild(title);
+                item.appendChild(main);
+                elThemesList.appendChild(item);
+
+                item.addEventListener("click", () => {
+                    onThemeClick(theme.id, courseId);
+                });
+            });
+
+            if (currentThemeId) {
+                document.querySelectorAll(".theme-item").forEach(el => {
+                    el.classList.toggle("active", Number(el.dataset.themeId) === Number(currentThemeId));
+                });
+            }
+
+            elThemesMsg.textContent = "";
+            elThemesMsg.className = "message-box";
+        } catch (e) {
+            elThemesMsg.textContent = "Ошибка загрузки тем: " + e.message;
+            elThemesMsg.className = "message-box message-error";
+        }
+    }
+
+    async function loadHomeworks() {
+        elHomeworksMsg.textContent = "Загрузка домашних заданий...";
+        elHomeworksMsg.className = "message-box";
+        elHomeworksTableBody.innerHTML = "";
+
+        const params = new URLSearchParams();
+        if (elFilterCourse.value) params.append("course_id", elFilterCourse.value);
+        if (elFilterTheme.value) params.append("theme_id", elFilterTheme.value);
+        if (elFilterStatus.value) params.append("status", elFilterStatus.value);
+        if (elFilterStudent.value) params.append("student_id", elFilterStudent.value);
+        params.append("skip", "0");
+        params.append("limit", "20");
+
+        try {
+            const homeworks = await apiFetch(`/homeworks?${params.toString()}`);
+            lastLoadedHomeworks = Array.isArray(homeworks) ? homeworks : [];
+
+            if (!Array.isArray(homeworks) || homeworks.length === 0) {
+                elHomeworksMsg.textContent = "Домашних заданий не найдено.";
+                elHomeworksMsg.className = "message-box";
+                return;
+            }
+
+            homeworks.forEach(hw => {
+                const tr = document.createElement("tr");
+
+                const tdCourse = document.createElement("td");
+                const tdTheme = document.createElement("td");
+                const tdStudent = document.createElement("td");
+                const tdStatus = document.createElement("td");
+
+                // Курс и тема — через helper'ы
+                tdCourse.textContent = getCourseNameForHomework(hw);
+                tdTheme.textContent = getThemeNameForHomework(hw);
+
+                const allStudents = studentsList || [];
+                const student = allStudents.find(s => s.id === hw.student_id);
+                tdStudent.textContent = student
+                    ? (student.full_name || student.email || `ID ${student.id}`)
+                    : (hw.student_id ? `ID ${hw.student_id}` : "");
+
+                const statusSpan = document.createElement("span");
+                statusSpan.className = "pill-status";
+                const status = hw.status || "pending";
+                if (status === "graded") {
+                    statusSpan.textContent = "Проверено";
+                    statusSpan.classList.add("pill-status-success");
+                } else if (status === "pending") {
+                    statusSpan.textContent = "На проверке";
+                    statusSpan.classList.add("pill-status-pending");
+                } else {
+                    statusSpan.textContent = status;
+                }
+                tdStatus.appendChild(statusSpan);
+
+                tr.appendChild(tdCourse);
+                tr.appendChild(tdTheme);
+                tr.appendChild(tdStudent);
+                tr.appendChild(tdStatus);
+
+                // клик по строке — открыть модалку с полным описанием и оценкой
+                tr.addEventListener("click", () => {
+                    openHomeworkModal(hw);
+                });
+
+                elHomeworksTableBody.appendChild(tr);
+            });
+
+            elHomeworksMsg.textContent = "";
+            elHomeworksMsg.className = "message-box";
+        } catch (e) {
+            elHomeworksMsg.textContent = "Ошибка загрузки домашних заданий: " + e.message;
+            elHomeworksMsg.className = "message-box message-error";
+        }
+    }
+
+    // ============ ИЕРАРХИЧЕСКАЯ ФИЛЬТРАЦИЯ ============
+
+    async function handleCourseFilterChange() {
+        const selectedCourseId = getSelectedCourseIdFromFilter();
+
+        // 1) таблица "Мои ученики"
+        renderStudentsTable(selectedCourseId);
+
+        // 2) выпадающий список студентов
+        populateStudentFilter(selectedCourseId);
+
+        // 3) выпадающий список тем (нужны темы по курсу или по всем курсам)
+        await rebuildThemeFilter(selectedCourseId);
+
+        // 4) обновить список домашек
+        await loadHomeworks();
+    }
+
+    function renderStudentsTable(courseId) {
+        elStudentsTableBody.innerHTML = "";
+
+        const list = courseId
+            ? (studentsByCourse[courseId] || [])
+            : studentsList;
+
+        if (!list || list.length === 0) {
+            elStudentsMsg.textContent = courseId
+                ? "На этом курсе пока нет студентов."
+                : "На ваших курсах пока нет студентов.";
+            elStudentsMsg.className = "message-box";
+            return;
+        }
+
+        list.forEach(student => {
+            const tr = document.createElement("tr");
+
+            const tdName = document.createElement("td");
+            const tdEmail = document.createElement("td");
+
+            const initials = getInitials(student.full_name || student.email || "");
+            const avatar = document.createElement("span");
+            avatar.className = "avatar-circle";
+            avatar.textContent = initials || "?";
+
+            tdName.appendChild(avatar);
+            tdName.appendChild(document.createTextNode(student.full_name || "Без имени"));
+            tdEmail.textContent = student.email || "";
+
+            tr.appendChild(tdName);
+            tr.appendChild(tdEmail);
+            elStudentsTableBody.appendChild(tr);
+        });
+
+        elStudentsMsg.textContent = `Показано ${list.length} студентов`;
+        elStudentsMsg.className = "message-box message-success";
+    }
+
+    function populateStudentFilter(courseId) {
+        elFilterStudent.innerHTML = '<option value="">Студент: все</option>';
+
+        const list = courseId
+            ? (studentsByCourse[courseId] || [])
+            : studentsList;
+
+        if (!list || list.length === 0) return;
+
+        list.forEach(student => {
+            const opt = document.createElement("option");
+            opt.value = student.id;
+            opt.textContent = student.full_name || student.email || ("ID " + student.id);
+            elFilterStudent.appendChild(opt);
+        });
+    }
+
+    async function rebuildThemeFilter(courseId) {
+        elFilterTheme.innerHTML = '<option value="">Тема: все</option>';
+
+        // Если конкретный курс — показываем только его темы
+        if (courseId) {
+            if (!themesByCourse[courseId]) {
+                try {
+                    const th = await apiFetch(`/themes/${courseId}`);
+                    themesByCourse[courseId] = th;
+                } catch (e) {
+                    console.error("Ошибка загрузки тем курса:", e);
+                    return;
+                }
+            }
+            const list = themesByCourse[courseId] || [];
+            list.forEach(theme => {
+                const opt = document.createElement("option");
+                opt.value = theme.id;
+                opt.textContent = theme.name || ("Тема #" + theme.id);
+                elFilterTheme.appendChild(opt);
+            });
+            return;
+        }
+
+        // Если курс не выбран — показываем все темы со всех курсов
+        if (!coursesList || coursesList.length === 0) return;
+
+        // Добираем темы для курсов, по которым ещё не грузили
+        const promises = [];
+        for (const course of coursesList) {
+            if (!themesByCourse[course.id]) {
+                promises.push(
+                    apiFetch(`/themes/${course.id}`)
+                        .then(th => { themesByCourse[course.id] = th; })
+                        .catch(e => console.error(`Ошибка загрузки тем курса ${course.id}:`, e))
+                );
+            }
+        }
+        if (promises.length) {
+            await Promise.all(promises);
+        }
+
+        const addedIds = new Set();
+        Object.values(themesByCourse).forEach(arr => {
+            (arr || []).forEach(theme => {
+                if (addedIds.has(theme.id)) return;
+                addedIds.add(theme.id);
+                const opt = document.createElement("option");
+                opt.value = theme.id;
+                opt.textContent = theme.name || ("Тема #" + theme.id);
+                elFilterTheme.appendChild(opt);
+            });
+        });
+    }
+
+    // ============ Обработчики кликов по курсу/теме ============
+
     async function onCourseClick(courseId) {
         currentCourseId = courseId;
         currentThemeId = null;
@@ -478,70 +854,13 @@ async function init() {
         elCourseFormMsg.textContent = "";
         elCourseFormMsg.className = "message-box";
 
+        // устанавливаем фильтр "Курс" во вкладке "Мои ученики"
         elFilterCourse.value = String(courseId);
-        elFilterTheme.innerHTML = '<option value="">Тема: все</option>';
 
         clearThemeForm(true);
 
         await loadThemes(courseId);
-        await loadHomeworks();
-    }
-
-    async function loadThemes(courseId) {
-        elThemesList.innerHTML = "";
-        elThemesMsg.textContent = "Загрузка тем...";
-        elThemesMsg.className = "message-box";
-        elFilterTheme.innerHTML = '<option value="">Тема: все</option>';
-
-        try {
-            const themes = await apiFetch(`/themes/${courseId}`);
-            themesByCourse[courseId] = themes;
-
-            if (!Array.isArray(themes) || themes.length === 0) {
-                elThemesList.innerHTML = '<span class="muted-text">Тем пока нет.</span>';
-                elThemesMsg.textContent = "";
-                return;
-            }
-
-            themes.forEach(theme => {
-                const item = document.createElement("div");
-                item.className = "theme-item";
-                item.dataset.themeId = theme.id;
-                item.dataset.courseId = courseId;
-
-                const main = document.createElement("div");
-                main.className = "theme-item-main";
-
-                const title = document.createElement("div");
-                title.className = "theme-item-title";
-                title.textContent = theme.name || ("Тема #" + theme.id);
-
-                main.appendChild(title);
-                item.appendChild(main);
-                elThemesList.appendChild(item);
-
-                const opt = document.createElement("option");
-                opt.value = theme.id;
-                opt.textContent = theme.name || ("Тема #" + theme.id);
-                elFilterTheme.appendChild(opt);
-
-                item.addEventListener("click", () => {
-                    onThemeClick(theme.id, courseId);
-                });
-            });
-
-            if (currentThemeId) {
-                document.querySelectorAll(".theme-item").forEach(el => {
-                    el.classList.toggle("active", Number(el.dataset.themeId) === Number(currentThemeId));
-                });
-            }
-
-            elThemesMsg.textContent = "";
-            elThemesMsg.className = "message-box";
-        } catch (e) {
-            elThemesMsg.textContent = "Ошибка загрузки тем: " + e.message;
-            elThemesMsg.className = "message-box message-error";
-        }
+        await handleCourseFilterChange(); // обновим таблицу студентов, фильтры и домашки под этот курс
     }
 
     function onThemeClick(themeId, courseId) {
@@ -565,76 +884,7 @@ async function init() {
         elThemeFormMsg.className = "message-box";
     }
 
-    async function loadHomeworks() {
-        elHomeworksMsg.textContent = "Загрузка домашних заданий...";
-        elHomeworksMsg.className = "message-box";
-        elHomeworksTableBody.innerHTML = "";
-
-        const params = new URLSearchParams();
-        if (elFilterCourse.value) params.append("course_id", elFilterCourse.value);
-        if (elFilterTheme.value) params.append("theme_id", elFilterTheme.value);
-        if (elFilterStatus.value) params.append("status", elFilterStatus.value);
-        if (elFilterStudent.value) params.append("student_id", elFilterStudent.value);
-        params.append("skip", "0");
-        params.append("limit", "20");
-
-        try {
-            const homeworks = await apiFetch(`/homeworks?${params.toString()}`);
-
-            if (!Array.isArray(homeworks) || homeworks.length === 0) {
-                elHomeworksMsg.textContent = "Домашних заданий не найдено.";
-                elHomeworksMsg.className = "message-box";
-                return;
-            }
-
-            homeworks.forEach(hw => {
-                const tr = document.createElement("tr");
-
-                const tdId = document.createElement("td");
-                const tdCourse = document.createElement("td");
-                const tdTheme = document.createElement("td");
-                const tdStudent = document.createElement("td");
-                const tdStatus = document.createElement("td");
-
-                tdId.textContent = hw.id ?? "";
-
-                const course = coursesList.find(c => c.id === hw.course_id);
-                tdCourse.textContent = course?.name || `Неизвестно`;
-
-                tdTheme.textContent = hw.title || (hw.theme_id ? `Тема #${hw.theme_id}` : "");
-
-                const statusSpan = document.createElement("span");
-                statusSpan.className = "pill-status";
-                const status = hw.status || "pending";
-                if (status === "graded") {
-                    statusSpan.textContent = "Проверено";
-                    statusSpan.classList.add("pill-status-success");
-                } else if (status === "pending") {
-                    statusSpan.textContent = "На проверке";
-                    statusSpan.classList.add("pill-status-pending");
-                } else {
-                    statusSpan.textContent = status;
-                }
-                tdStatus.appendChild(statusSpan);
-
-                tr.appendChild(tdId);
-                tr.appendChild(tdCourse);
-                tr.appendChild(tdTheme);
-                tr.appendChild(tdStudent);
-                tr.appendChild(tdStatus);
-
-                elHomeworksTableBody.appendChild(tr);
-            });
-
-            elHomeworksMsg.textContent = "";
-            elHomeworksMsg.className = "message-box";
-        } catch (e) {
-            elHomeworksMsg.textContent = "Ошибка загрузки домашних заданий: " + e.message;
-            elHomeworksMsg.className = "message-box message-error";
-        }
-    }
-
-    // ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
+    // ============ Вспомогательные функции ============
 
     function clearCourseForm() {
         elCourseName.value = "";
@@ -657,6 +907,11 @@ async function init() {
         }
     }
 
+    function getSelectedCourseIdFromFilter() {
+        const val = elFilterCourse.value;
+        return val ? Number(val) : null;
+    }
+
     function getInitials(name) {
         if (!name) return "";
         return name
@@ -665,5 +920,64 @@ async function init() {
             .map(w => w[0].toUpperCase())
             .slice(0, 2)
             .join("");
+    }
+
+    function getCourseNameForHomework(hw) {
+        // 1. Если бэк уже отдает имя курса
+        if (hw.course_name) return hw.course_name;
+        if (hw.course && hw.course.name) return hw.course.name;
+
+        // 2. Если есть course_id — ищем в списке курсов
+        if (hw.course_id && Array.isArray(coursesList) && coursesList.length > 0) {
+            const c = coursesList.find(c => c.id === hw.course_id);
+            if (c) return c.name || `Курс #${c.id}`;
+        }
+
+        // 3. Если есть вложенная тема с курсом
+        if (hw.theme && hw.theme.course && hw.theme.course.name) {
+            return hw.theme.course.name;
+        }
+
+        // 4. Пытаемся найти курс по theme_id через themesByCourse
+        if (hw.theme_id && themesByCourse && Object.keys(themesByCourse).length > 0) {
+            for (const [courseId, themes] of Object.entries(themesByCourse)) {
+                const arr = Array.isArray(themes) ? themes : [];
+                const t = arr.find(t => t.id === hw.theme_id);
+                if (t) {
+                    const c = coursesList.find(c => c.id === Number(courseId));
+                    if (c) return c.name || `Курс #${c.id}`;
+                    return `Курс #${courseId}`;
+                }
+            }
+        }
+
+        return "Неизвестно";
+    }
+
+    function getThemeNameForHomework(hw) {
+        // 1. Если бэк уже отдает имя темы
+        if (hw.theme_name) return hw.theme_name;
+        if (hw.theme && hw.theme.name) return hw.theme.name;
+
+        // 2. Ищем по theme_id в кешированных темах
+        if (hw.theme_id && themesByCourse && Object.keys(themesByCourse).length > 0) {
+            // Сначала пробуем по course_id, если есть
+            if (hw.course_id && themesByCourse[hw.course_id]) {
+                const arr = Array.isArray(themesByCourse[hw.course_id]) ? themesByCourse[hw.course_id] : [];
+                const t = arr.find(t => t.id === hw.theme_id);
+                if (t) return t.name || `Тема #${t.id}`;
+            }
+            // Иначе пробегаем все курсы
+            for (const themes of Object.values(themesByCourse)) {
+                const arr = Array.isArray(themes) ? themes : [];
+                const t = arr.find(t => t.id === hw.theme_id);
+                if (t) return t.name || `Тема #${t.id}`;
+            }
+        }
+
+        // 3. Как крайний случай — используем title или заглушку
+        if (hw.title) return hw.title;
+        if (hw.theme_id) return `Тема #${hw.theme_id}`;
+        return "Тема не указана";
     }
 }

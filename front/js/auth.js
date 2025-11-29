@@ -1,4 +1,4 @@
-const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru"; // Поменяйте под ваш хост
+const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
 
 // Переключение между формами
 function showLogin() {
