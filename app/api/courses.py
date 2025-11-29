@@ -16,19 +16,61 @@ from schemas.course import (
 courses_router = APIRouter()
 
 
+@courses_router.get("/all")
+async def get_all_courses(
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Получить все курсы с информацией о записи пользователя"""
+    # Базовый запрос для всех курсов
+    query = (
+        select(Course)
+        .options(selectinload(Course.owner))
+    )
+    
+    result = await db.execute(query)
+    courses = result.scalars().all()
+    
+    # Если пользователь не авторизован или это преподаватель, возвращаем просто курсы
+    if not current_user or current_user.is_teacher:
+        return courses
+    
+    # Для студента проверяем, на какие курсы он записан
+    enrolled_result = await db.execute(
+        select(UserCourseAssociation.course_id)
+        .filter(UserCourseAssociation.user_id == current_user.id)
+    )
+    enrolled_course_ids = {course_id for course_id, in enrolled_result.all()}
+    
+    # Добавляем флаг is_enrolled к каждому курсу
+    for course in courses:
+        course.is_enrolled = course.id in enrolled_course_ids
+    
+    return courses
+
+
 @courses_router.get("/my")
 async def my_courses(
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
     if current_user.is_teacher:
+        # Для преподавателя - только его курсы
         result = await db.execute(
-            select(Course).filter(Course.owner_id == current_user.id)
+            select(Course)
+            .options(selectinload(Course.owner))
+            .filter(Course.owner_id == current_user.id)
         )
         return result.scalars().all()
-
-    res = await db.execute(select(Course))
-    return res.scalars().all()
+    else:
+        # Для студента - только курсы, на которые он записан
+        result = await db.execute(
+            select(Course)
+            .options(selectinload(Course.owner))
+            .join(UserCourseAssociation, Course.id == UserCourseAssociation.course_id)
+            .filter(UserCourseAssociation.user_id == current_user.id)
+        )
+        return result.scalars().all()
 
 
 @courses_router.get("/{course_id}/students")
@@ -74,7 +116,7 @@ async def get_course(
     return course
 
 
-@courses_router.post("/courses/{course_id}/enroll")
+@courses_router.post("/{course_id}/enroll")
 async def enroll_course(
     course_id: int,
     db: AsyncSession = Depends(get_session),
