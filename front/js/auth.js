@@ -52,7 +52,7 @@ async function registerUser() {
         setTimeout(showLogin, 1000);
 
     } catch (e) {
-        messageBox.textContent = "Ошибка подключения к серверу";
+        messageBox.textContent = `Ошибка подключения к серверу: ${e}`;
     }
 }
 
@@ -104,13 +104,13 @@ async function loginUser() {
             
             // Перенаправление в зависимости от роли
             if (userData.is_teacher) {
-                window.location.href = "/front/templates/teacher.html";
+                window.location.href = "/teacher.html";
             } else {
-                window.location.href = "/front/templates/student.html";
+                window.location.href = "/student.html";
             }
         }
 
     } catch (e) {
-        messageBox.textContent = "Ошибка подключения к серверу";
+        messageBox.textContent = `Ошибка подключения к серверу: ${e}`;
     }
 }

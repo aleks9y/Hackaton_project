@@ -13,7 +13,7 @@ from api.uploads import upload_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    run_param = False
+    run_param = True
     if run_param:
         await drop_db()
     await create_db()
@@ -22,21 +22,26 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="my app", lifespan=lifespan)
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://lusciously-reliable-hermit.cloudpub.ru",
+        "https://fussily-tops-bowerbird.cloudpub.ru",  # Основной домен
+        "https://jubilantly-evident-warthog.cloudpub.ru",  # Бэкенд домен
         "http://127.0.0.1:5500",
         "http://localhost:5500",
+        "http://0.0.0.0:5500",
         "http://127.0.0.1:3000",
         "http://localhost:3000",
+        "http://0.0.0.0:3000",
+        "https://lusciously-reliable-hermit.cloudpub.ru",
         "https://merely-factual-platy.cloudpub.ru",
-        "*",  # Временно для тестирования
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(courses_router, prefix="/courses", tags=["courses"])
