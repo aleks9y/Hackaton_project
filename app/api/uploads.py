@@ -46,11 +46,6 @@ async def download_theme_file(
     if not theme:
         raise HTTPException(status_code=404, detail="Theme not found")
 
-    if theme.course.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not the owner of this course"
-        )
-
     file_path = UPLOAD_DIR / str(theme_id) / filename
 
     if not file_path.exists() or not file_path.is_file():

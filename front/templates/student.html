@@ -656,6 +656,77 @@
             color: var(--muted);
             text-align: right;
         }
+        /* Стили для файлов */
+        .files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .files-list-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .file-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .file-link:hover {
+            text-decoration: underline;
+        }
+
+        .teacher-file-badge {
+            font-size: 12px;
+            color: #6b7280;
+            margin-left: 8px;
+        }
+
+        .student-file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            border: 1px solid #bae6fd;
+            margin-bottom: 4px;
+        }
+
+        .student-file-name {
+            font-size: 13px;
+            color: #0369a1;
+        }
+
+        .file-delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-delete-btn:hover {
+            background: #dc2626;
+        }
+
+        .muted-text {
+            font-size: 12px;
+            color: var(--muted);
+        }
     </style>
 </head>
 <body>
@@ -771,6 +842,22 @@
 
                     <div class="theme-text-content" id="theme-text">
                         <p>Выберите тему из списка слева, чтобы просмотреть материалы и задания.</p>
+                    </div>
+
+                    <!-- Файлы преподавателя -->
+                    <div class="page-section" id="teacher-files-section" style="display:none;">
+                        <h3 class="card-title" style="margin-bottom: 16px;">Материалы преподавателя</h3>
+                        <div class="files-list" id="theme-files-list">
+                            <!-- Файлы преподавателя будут здесь -->
+                        </div>
+                    </div>
+
+                    <!-- Файлы студента для домашнего задания -->
+                    <div class="page-section" id="student-files-section" style="display:none;">
+                        <h3 class="card-title" style="margin-bottom: 16px;">Ваши прикрепленные файлы</h3>
+                        <div class="files-list" id="student-files-list">
+                            <!-- Файлы студента будут здесь -->
+                        </div>
                     </div>
 
                     <!-- Блок с домашним заданием -->
