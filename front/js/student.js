@@ -520,10 +520,13 @@ async function init() {
             const item = document.createElement("div");
             item.className = "student-file-item";
 
-            const nameSpan = document.createElement("span");
-            nameSpan.className = "student-file-name";
-            nameSpan.textContent = file.filename || getFileNameFromPath(file.url);
-
+            const link = document.createElement("a");
+            link.href = BASE_URL + file.url;
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.className = "file-link";
+            link.textContent = file.filename || getFileNameFromPath(file.url);
+                
             const deleteBtn = document.createElement("button");
             deleteBtn.type = "button";
             deleteBtn.className = "file-delete-btn";
@@ -603,7 +606,7 @@ async function init() {
     // Загрузка файлов существующего домашнего задания
     async function loadExistingHomeworkFiles(themeId) {
         try {
-            const files = await apiFetch(`/files/theme/${themeId}/getfiles`);
+            const files = await apiFetch(`/files/theme/${themeId}/getfiles?is_homework=True`);
             currentHomeworkFiles = Array.isArray(files) ? files : [];
             updateStudentFilesList();
         } catch (e) {

@@ -30,7 +30,7 @@ app.add_middleware(
         "http://localhost:5500",
         "http://127.0.0.1:3000",
         "http://localhost:3000",
-        "https://merely-factual-platy.cloudpub.ru:8080",
+        "https://merely-factual-platy.cloudpub.ru",
         "*",  # Временно для тестирования
     ],
     allow_credentials=True,

@@ -110,6 +110,7 @@ async function init() {
     const elHwModalStudent = document.getElementById("modal-hw-student");
     const elHwModalStatus = document.getElementById("modal-hw-status");
     const elHwModalText = document.getElementById("modal-hw-text");
+    const elHwMoFilesList = document.getElementById("modal-hw-file-list");
     const elHwModalScore = document.getElementById("modal-hw-score");
     const elHwModalScoreValue = document.getElementById("modal-hw-score-value");
     const elHwModalComment = document.getElementById("modal-hw-comment");
@@ -118,7 +119,7 @@ async function init() {
     const elHwModalCancelBtn = document.getElementById("modal-hw-cancel");
     const elHwModalCloseBtn = document.getElementById("modal-hw-close");
 
-    function openHomeworkModal(hw) {
+    async function openHomeworkModal(hw) {
         if (!hw) return;
         currentHomeworkId = hw.id;
 
@@ -146,6 +147,8 @@ async function init() {
         elHwModalStatus.appendChild(statusSpan);
 
         elHwModalText.textContent = hw.text || "Текст ответа не указан.";
+
+        await loadThemeFiles(hw.theme_id, elHwMoFilesList, true);
 
         let initialScore = 0;
         let initialComment = "";
@@ -387,7 +390,7 @@ async function init() {
             if (savedTheme && savedTheme.id) {
                 // загружаем файлы, если выбраны
                 await uploadThemeFiles(savedTheme.id, elThemeFiles, elThemeFormMsg);
-                await loadThemeFiles(savedTheme.id, elThemeFilesList);
+                await loadThemeFiles(savedTheme.id, elThemeFilesList, false);
                 elThemeFiles.value = "";
             }
 
@@ -863,7 +866,7 @@ async function init() {
             elThemeName.value = currentTheme.name || "";
             elThemeText.value = currentTheme.text || "";
             elThemeIsHomework.checked = !!currentTheme.is_homework;
-            await loadThemeFiles(themeId, elThemeFilesList);
+            await loadThemeFiles(themeId, elThemeFilesList, false);
         } else {
             clearThemeForm(false);
         }
@@ -1003,14 +1006,18 @@ async function init() {
         }
     }
 
-    async function loadThemeFiles(themeId, listEl) {
+    async function loadThemeFiles(themeId, listEl, is_homework) {
         if (!listEl) return;
         listEl.textContent = "Загрузка файлов...";
 
         try {
-            const files = await apiFetch(`/files/theme/${themeId}/getfiles`);
+            const files = await apiFetch(`/files/theme/${themeId}/getfiles?is_homework=${is_homework}`);
             if (!Array.isArray(files) || !files.length) {
-                listEl.textContent = "К этой теме пока не прикреплены файлы.";
+                if (is_homework) {
+                    listEl.textContent = "К этой теме не прикреплены файлы домашнего задания.";
+                } else {
+                    listEl.textContent = "К этой теме пока не прикреплены файлы.";
+                }
                 return;
             }
 
@@ -1067,7 +1074,7 @@ async function init() {
                 elThemeFormMsg.className = "message-box message-success";
             }
 
-            await loadThemeFiles(themeId, listEl);
+            await loadThemeFiles(themeId, listEl, false);
             
         } catch (e) {
             console.error("Ошибка при удалении файла:", e);
