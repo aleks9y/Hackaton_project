@@ -1,5 +1,7 @@
 const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
 const LOGIN_PAGE = "/index.html";
+const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru"; // поправь под свой бэк
+const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
 let currentUser = null;
@@ -217,7 +219,7 @@ async function init() {
 
             // Отправляем данные в правильном формате
             const response = await apiFetch(`/homeworks/${currentHomeworkId}/grade`, {
-                method: "POST",
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     score: score,

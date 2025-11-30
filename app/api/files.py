@@ -121,6 +121,7 @@ async def upload_files(
             )
             homework = homework_result.scalar_one_or_none()
 
+
             if not homework:
                 homework = Homework(
                     theme_id=theme_id,
