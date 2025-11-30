@@ -9,26 +9,31 @@ import os
 import uuid
 
 from database.engine import get_session
-from database.models import Theme, Course, User, File as ThemeFile
+from database.models import Homework, Theme, Course, User, File as ThemeFile
 from utils.auth import get_current_user
 
 
 files_router = APIRouter()
 
-UPLOAD_DIR = Path("uploads/themes")
+UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
 
 
 @files_router.post("/theme/{theme_id}/uploadfiles")
-async def upload_theme_files(
+async def upload_files(
     theme_id: int,
     files: List[UploadFile] = FastAPIFile(...),
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    # подтягиваем тему вместе с курсом и владельцем
+    """
+    Загрузить файлы для темы
+    - Преподаватель: может загружать файлы для любых тем своих курсов (is_homework=False)
+    - Студент: может загружать файлы только для домашних заданий (theme.is_homework=True)
+    """
+    # Получаем тему вместе с курсом
     result = await db.execute(
         select(Theme)
         .options(selectinload(Theme.course).selectinload(Course.owner))
@@ -39,14 +44,32 @@ async def upload_theme_files(
     if not theme:
         raise HTTPException(status_code=404, detail="Theme not found")
 
-    # проверка, что пользователь — владелец курса
-    if theme.course.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not the owner of this course"
-        )
+    # Определяем путь и тип файла в зависимости от роли
+    if current_user.is_teacher:
+        # Преподаватель должен быть владельцем курса
+        if theme.course.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="You are not the owner of this course"
+            )
+        is_homework = False
+        fPath = "themes"
+    else:
+        # Студент может загружать только для домашних заданий
+        if not theme.is_homework:
+            raise HTTPException(
+                status_code=403, detail="You can only upload files for homework themes"
+            )
+        is_homework = True
+        fPath = "homeworks"
 
     saved_files = []
-    theme_dir = UPLOAD_DIR / str(theme_id)
+
+    # Создаем директорию для файлов
+    if current_user.is_teacher:
+        theme_dir = UPLOAD_DIR / fPath / str(theme_id)
+    else:
+        theme_dir = UPLOAD_DIR / fPath / str(current_user.id) / str(theme_id)
+
     theme_dir.mkdir(parents=True, exist_ok=True)
 
     for upload in files:
@@ -76,9 +99,32 @@ async def upload_theme_files(
         rel_path = dest_path.as_posix()
         db_file = ThemeFile(
             theme_id=theme_id,
-            is_homework=False,
+            is_homework=is_homework,
             file_path=rel_path,
         )
+
+        # Для студентских файлов домашнего задания связываем с домашним заданием
+        if is_homework and not current_user.is_teacher:
+            # Находим или создаем домашнее задание студента
+            homework_result = await db.execute(
+                select(Homework).filter(
+                    Homework.theme_id == theme_id,
+                    Homework.student_id == current_user.id,
+                )
+            )
+            homework = homework_result.scalar_one_or_none()
+
+            if not homework:
+                homework = Homework(
+                    theme_id=theme_id,
+                    student_id=current_user.id,
+                    title=theme.name or "Homework",
+                    text="",  # Текст будет добавлен позже
+                    status="draft",
+                )
+                db.add(homework)
+                await db.flush()
+
         db.add(db_file)
         await db.flush()
         await db.refresh(db_file)
@@ -88,6 +134,7 @@ async def upload_theme_files(
                 "id": db_file.id,
                 "filename": upload.filename,
                 "url": "/" + rel_path.lstrip("/"),
+                "is_homework": is_homework,
             }
         )
 
@@ -111,15 +158,15 @@ async def get_theme_files(
     if not theme:
         raise HTTPException(status_code=404, detail="Theme not found")
 
-    if theme.course.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not the owner of this course"
-        )
+    if current_user.is_teacher:
+        is_homework = True
+    else:
+        is_homework = False
 
     files_result = await db.execute(
         select(ThemeFile).filter(
             ThemeFile.theme_id == theme_id,
-            ThemeFile.is_homework == False,
+            ThemeFile.is_homework == is_homework,
         )
     )
     files = files_result.scalars().all()
@@ -163,6 +210,30 @@ async def delete_theme_file(
         raise HTTPException(
             status_code=403, detail="You are not the owner of this course"
         )
+
+    # Проверяем права доступа для удаления
+    if current_user.is_teacher:
+        # Преподаватель может удалять файлы только своих курсов
+        if file.theme.course.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=403, detail="You are not the owner of this course"
+            )
+    else:
+        # Студент может удалять только файлы домашнего задания
+        if not file.is_homework:
+            raise HTTPException(
+                status_code=403, detail="You can only delete homework files"
+            )
+
+        # Проверяем, что файл связан с домашним заданием студента
+        # Для студентских файлов проверяем путь
+        file_path = Path(file.file_path)
+        expected_path = UPLOAD_DIR / "homeworks" / str(current_user.id)
+
+        if str(expected_path) not in str(file_path):
+            raise HTTPException(
+                status_code=403, detail="You can only delete your own homework files"
+            )
 
     try:
         # Удаляем физический файл с диска

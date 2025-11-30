@@ -80,7 +80,6 @@ async def submit_homework(
 
 @homeworks_router.get("/my")
 async def get_my_homeworks(
-    theme_id: Optional[int] = Query(None),
     skip: int = 0,
     limit: int = 10,
     session: AsyncSession = Depends(get_session),
@@ -91,7 +90,7 @@ async def get_my_homeworks(
         raise HTTPException(status_code=403, detail="Only for students")
 
     homeworks = await HomeworkRepository.get_homeworks_with_filters(
-        session, student_id=current_user.id, theme_id=theme_id, skip=skip, limit=limit
+        session, student_id=current_user.id, skip=skip, limit=limit
     )
     return homeworks
 

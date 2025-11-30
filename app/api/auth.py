@@ -46,7 +46,7 @@ async def login(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect phone or password",
+            detail="Incorrect email or password",
         )
 
     token_data = {"user_id": user.id}

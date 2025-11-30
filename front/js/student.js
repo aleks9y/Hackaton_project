@@ -1,5 +1,5 @@
 // Настройки
-const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru"; // поправь под свой бэк
+const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
 const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
@@ -97,6 +97,34 @@ async function init() {
 
     elBtnSendHomework.addEventListener("click", async () => {
         await submitHomework();
+    });
+
+    document.getElementById("hw-file").addEventListener("change", async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        if (!currentTheme) {
+            elHomeworkMessage.textContent = "Сначала выберите тему";
+            elHomeworkMessage.className = "message-box message-error";
+            e.target.value = "";
+            return;
+        }
+
+        try {
+            elHomeworkMessage.textContent = "Загрузка файлов...";
+            elHomeworkMessage.className = "message-box";
+            
+            const uploadedFiles = await uploadHomeworkFiles(files, currentTheme.id);
+            
+            // Добавляем загруженные файлы в текущий список
+            currentHomeworkFiles = [...currentHomeworkFiles, ...uploadedFiles];
+            updateStudentFilesList();
+            
+        } catch (e) {
+            console.error('Ошибка при загрузке файлов:', e);
+        } finally {
+            e.target.value = ""; // сбрасываем input
+        }
     });
 
     // Основной сценарий
@@ -388,17 +416,136 @@ async function init() {
         elThemeTitleHeading.textContent = theme.name || "Тема без названия";
         elThemeText.textContent = theme.text || "Содержание темы отсутствует";
         
+        // Загружаем файлы темы (преподавателя)
+        loadThemeFiles(theme.id);
+        
         // Показываем/скрываем секцию домашнего задания
         if (theme.is_homework) {
             elHomeworkSection.style.display = "block";
             elTeacherAnswerSection.style.display = "block";
             
-            // TODO: Загрузить существующее домашнее задание и ответ преподавателя
+            // Загружаем данные по домашнему заданию и файлы студента
             loadHomeworkData(theme.id);
         } else {
             elHomeworkSection.style.display = "none";
             elTeacherAnswerSection.style.display = "none";
         }
+    }
+    async function loadThemeFiles(themeId) {
+        const filesListEl = document.getElementById("theme-files-list");
+        if (!filesListEl) return;
+        
+        filesListEl.innerHTML = "Загрузка файлов...";
+        document.getElementById("theme-files-section").style.display = "block";
+
+        try {
+            const files = await apiFetch(`/files/theme/${themeId}/getfiles`);
+            
+            if (!Array.isArray(files) || files.length === 0) {
+                filesListEl.innerHTML = '<div class="muted-text">Файлы отсутствуют</div>';
+                return;
+            }
+
+            filesListEl.innerHTML = "";
+            files.forEach(file => {
+                const item = document.createElement("div");
+                item.className = "files-list-item";
+
+                const link = document.createElement("a");
+                link.href = BASE_URL + file.url;
+                link.target = "_blank";
+                link.rel = "noreferrer";
+                link.className = "file-link";
+                link.textContent = file.filename || getFileNameFromPath(file.url);
+                
+                item.appendChild(link);
+                filesListEl.appendChild(item);
+            });
+        } catch (e) {
+            console.error('Ошибка загрузки файлов темы:', e);
+            filesListEl.innerHTML = '<div class="muted-text">Ошибка загрузки файлов</div>';
+        }
+    }
+
+    // Загрузка файлов домашнего задания студента
+    async function uploadHomeworkFiles(files, themeId) {
+        if (!files || !files.length) return [];
+
+        const formData = new FormData();
+        let hasFiles = false;
+
+        for (const file of files) {
+            if (file.size > 100 * 1024 * 1024) {
+                elHomeworkMessage.textContent = `Файл "${file.name}" больше 100 МБ и не будет загружен.`;
+                elHomeworkMessage.className = "message-box message-error";
+                continue;
+            }
+            formData.append("files", file);
+            hasFiles = true;
+        }
+
+        if (!hasFiles) return [];
+
+        try {
+            const uploadedFiles = await apiFetch(`/files/theme/${themeId}/uploadfiles`, {
+                method: "POST",
+                body: formData
+            });
+            
+            elHomeworkMessage.textContent = "Файлы загружены.";
+            elHomeworkMessage.className = "message-box message-success";
+            
+            return Array.isArray(uploadedFiles) ? uploadedFiles : [];
+        } catch (e) {
+            console.error('Ошибка загрузки файлов домашнего задания:', e);
+            elHomeworkMessage.textContent = "Ошибка загрузки файлов: " + e.message;
+            elHomeworkMessage.className = "message-box message-error";
+            return [];
+        }
+    }
+
+    // Обновление списка файлов студента
+    function updateStudentFilesList() {
+        const filesListEl = document.getElementById("student-files-list");
+        if (!filesListEl) return;
+        
+        filesListEl.innerHTML = "";
+
+        if (currentHomeworkFiles.length === 0) {
+            filesListEl.innerHTML = '<div class="muted-text">Файлы не прикреплены</div>';
+            return;
+        }
+
+        currentHomeworkFiles.forEach((file, index) => {
+            const item = document.createElement("div");
+            item.className = "student-file-item";
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "student-file-name";
+            nameSpan.textContent = file.filename || getFileNameFromPath(file.url);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.type = "button";
+            deleteBtn.className = "file-delete-btn";
+            deleteBtn.innerHTML = "×";
+            deleteBtn.setAttribute("aria-label", "Удалить файл");
+            
+            deleteBtn.addEventListener("click", () => {
+                currentHomeworkFiles.splice(index, 1);
+                updateStudentFilesList();
+            });
+
+            item.appendChild(nameSpan);
+            item.appendChild(deleteBtn);
+            filesListEl.appendChild(item);
+        });
+    }
+
+    // Вспомогательная функция для получения имени файла из пути
+    function getFileNameFromPath(path) {
+        if (!path) return "";
+        const parts = path.split("/");
+        return parts[parts.length - 1] || path;
     }
 
     function resetThemeContent() {
@@ -408,7 +555,8 @@ async function init() {
         elTeacherAnswerSection.style.display = "none";
         elHomeworkAnswer.value = "";
         elHomeworkMessage.textContent = "";
-        elHomeworkMessage.className = "message-box";
+        currentHomeworkFiles = [];
+        updateStudentFilesList();
     }
 
     function showDashboard() {
@@ -419,13 +567,55 @@ async function init() {
     }
 
     async function loadHomeworkData(themeId) {
-        // TODO: Реализовать загрузку существующего домашнего задания
-        // и ответа преподавателя
-        elTeacherAnswerBlock.textContent = "Пока нет данных по проверке.";
+        try {
+            // Загружаем существующее домашнее задание студента
+            const existingHomework = await loadExistingHomework(themeId);
+            
+            if (existingHomework) {
+                elHomeworkAnswer.value = existingHomework.text || "";
+                // Загружаем файлы существующего домашнего задания
+                await loadExistingHomeworkFiles(themeId);
+            } else {
+                elHomeworkAnswer.value = "";
+                currentHomeworkFiles = [];
+                updateStudentFilesList();
+            }
+
+            // Загружаем ответ преподавателя
+            await loadTeacherFeedback(themeId);
+            
+        } catch (e) {
+            console.error('Ошибка загрузки данных домашнего задания:', e);
+        }
+    }
+
+    // Загрузка существующего домашнего задания
+    async function loadExistingHomework(themeId) {
+        try {
+            const homeworks = await apiFetch(`/homeworks/my?theme_id=${themeId}`);
+            return Array.isArray(homeworks) && homeworks.length > 0 ? homeworks[0] : null;
+        } catch (e) {
+            console.error('Ошибка загрузки существующего ДЗ:', e);
+            return null;
+        }
+    }
+
+    // Загрузка файлов существующего домашнего задания
+    async function loadExistingHomeworkFiles(themeId) {
+        try {
+            const files = await apiFetch(`/files/theme/${themeId}/getfiles`);
+            currentHomeworkFiles = Array.isArray(files) ? files : [];
+            updateStudentFilesList();
+        } catch (e) {
+            console.error('Ошибка загрузки файлов ДЗ:', e);
+            currentHomeworkFiles = [];
+            updateStudentFilesList();
+        }
     }
 
     async function submitHomework() {
         const answer = elHomeworkAnswer.value.trim();
+        const filesInput = document.getElementById("hw-file");
         
         if (!answer) {
             elHomeworkMessage.textContent = "Введите ответ на задание";
@@ -443,20 +633,40 @@ async function init() {
             elHomeworkMessage.textContent = "Отправка...";
             elHomeworkMessage.className = "message-box";
 
-            await apiFetch(`/homeworks/${currentTheme.id}`, {
+            // Загружаем файлы, если они есть
+            let uploadedFiles = [];
+            if (filesInput.files && filesInput.files.length > 0) {
+                uploadedFiles = await uploadHomeworkFiles(filesInput.files, currentTheme.id);
+            }
+
+            // Объединяем существующие файлы с новыми
+            const allFiles = [...currentHomeworkFiles, ...uploadedFiles];
+
+            // Отправляем домашнее задание
+            const homeworkData = {
+                theme_id: currentTheme.id,
+                title: currentTheme.name || "Домашнее задание",
+                text: answer,
+                files: allFiles
+            };
+
+            await apiFetch("/homeworks", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: currentTheme.name,
-                    text: answer
-                })
+                body: JSON.stringify(homeworkData)
             });
 
             elHomeworkMessage.textContent = "Домашнее задание отправлено на проверку!";
             elHomeworkMessage.className = "message-box message-success";
             
-            // Очищаем поле ответа
+            // Очищаем поля
             elHomeworkAnswer.value = "";
+            filesInput.value = "";
+            currentHomeworkFiles = [];
+            updateStudentFilesList();
+
+            // Перезагружаем данные
+            await loadHomeworkData(currentTheme.id);
 
         } catch (e) {
             console.error('Ошибка отправки домашнего задания:', e);
