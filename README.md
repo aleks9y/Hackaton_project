@@ -136,7 +136,7 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/hakatonDB
 
 5. Перейти на сервер
 
-https://fussily-tops-bowerbird.cloudpub.ru/front/templates/
+https://fussily-tops-bowerbird.cloudpub.ru
 
 7. Запуск сервера
 venv/Scripts/python.exe app/main.py
@@ -159,3 +159,6 @@ http://localhost:8080
 Хранение в /uploads/
 
 Скачивание
+Весь проект находится в ветке dev
+
+8. Настроена контейнерезация приложения
