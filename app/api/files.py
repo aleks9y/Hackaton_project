@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File as FastAPIFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    UploadFile,
+    File as FastAPIFile,
+)
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 import os
 import uuid
@@ -114,6 +121,7 @@ async def upload_files(
             )
             homework = homework_result.scalar_one_or_none()
 
+
             if not homework:
                 homework = Homework(
                     theme_id=theme_id,
@@ -145,6 +153,7 @@ async def upload_files(
 @files_router.get("/theme/{theme_id}/getfiles")
 async def get_theme_files(
     theme_id: int,
+    is_homework: Optional[bool] = Query(False),
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -157,11 +166,6 @@ async def get_theme_files(
 
     if not theme:
         raise HTTPException(status_code=404, detail="Theme not found")
-
-    if current_user.is_teacher:
-        is_homework = True
-    else:
-        is_homework = False
 
     files_result = await db.execute(
         select(ThemeFile).filter(

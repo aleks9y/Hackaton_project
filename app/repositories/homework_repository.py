@@ -14,7 +14,7 @@ class HomeworkRepository:
 
     async def create_submission(
         session: AsyncSession, submission_data: dict
-    ) -> HomeworkSubmission:
+    ):
         submission = HomeworkSubmission(**submission_data)
         session.add(submission)
         await session.commit()

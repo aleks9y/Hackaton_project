@@ -1,5 +1,5 @@
 // Настройки
-const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
+const BASE_URL = "https://unwillingly-tonic-cougar.cloudpub.ru"; // поправь под свой бэк
 const LOGIN_PAGE = "/front/templates/index.html";
 
 // Глобальные переменные
@@ -410,39 +410,46 @@ async function init() {
         resetThemeContent();
     }
 
+    let currentHomeworkFiles = [];
+
     function showThemeContent(theme) {
         currentTheme = theme;
         
         elThemeTitleHeading.textContent = theme.name || "Тема без названия";
         elThemeText.textContent = theme.text || "Содержание темы отсутствует";
         
-        // Загружаем файлы темы (преподавателя)
+        // Показываем файлы преподавателя для ВСЕХ тем
+        document.getElementById("teacher-files-section").style.display = "block";
         loadThemeFiles(theme.id);
         
         // Показываем/скрываем секцию домашнего задания
         if (theme.is_homework) {
             elHomeworkSection.style.display = "block";
             elTeacherAnswerSection.style.display = "block";
+            document.getElementById("student-files-section").style.display = "block";
             
             // Загружаем данные по домашнему заданию и файлы студента
             loadHomeworkData(theme.id);
         } else {
             elHomeworkSection.style.display = "none";
             elTeacherAnswerSection.style.display = "none";
+            document.getElementById("student-files-section").style.display = "none";
         }
     }
+
+    // Загрузка файлов преподавателя
     async function loadThemeFiles(themeId) {
         const filesListEl = document.getElementById("theme-files-list");
         if (!filesListEl) return;
         
-        filesListEl.innerHTML = "Загрузка файлов...";
-        document.getElementById("theme-files-section").style.display = "block";
+        filesListEl.innerHTML = "Загрузка файлов преподавателя...";
 
         try {
-            const files = await apiFetch(`/files/theme/${themeId}/getfiles`);
+            // Загружаем файлы преподавателя (is_homework=false)
+            const files = await apiFetch(`/files/theme/${themeId}/getfiles?is_homework=false`);
             
             if (!Array.isArray(files) || files.length === 0) {
-                filesListEl.innerHTML = '<div class="muted-text">Файлы отсутствуют</div>';
+                filesListEl.innerHTML = '<div class="muted-text">Файлы преподавателя отсутствуют</div>';
                 return;
             }
 
@@ -451,19 +458,27 @@ async function init() {
                 const item = document.createElement("div");
                 item.className = "files-list-item";
 
+                // Используем правильный URL для скачивания файлов преподавателя
+                const filename = file.filename || getFileNameFromPath(file.url);
                 const link = document.createElement("a");
-                link.href = BASE_URL + file.url;
+                link.href = BASE_URL + `/uploads/themes/${themeId}/${filename}`;
                 link.target = "_blank";
-                link.rel = "noreferrer";
+                link.rel = "noopener noreferrer";
                 link.className = "file-link";
-                link.textContent = file.filename || getFileNameFromPath(file.url);
+                link.textContent = filename;
+                
+                // Добавляем пометку, что это файл преподавателя
+                const teacherBadge = document.createElement("span");
+                teacherBadge.className = "teacher-file-badge";
+                teacherBadge.textContent = " (преподаватель)";
                 
                 item.appendChild(link);
+                item.appendChild(teacherBadge);
                 filesListEl.appendChild(item);
             });
         } catch (e) {
-            console.error('Ошибка загрузки файлов темы:', e);
-            filesListEl.innerHTML = '<div class="muted-text">Ошибка загрузки файлов</div>';
+            console.error('Ошибка загрузки файлов преподавателя:', e);
+            filesListEl.innerHTML = '<div class="muted-text">Ошибка загрузки файлов преподавателя</div>';
         }
     }
 
@@ -530,9 +545,15 @@ async function init() {
             deleteBtn.innerHTML = "×";
             deleteBtn.setAttribute("aria-label", "Удалить файл");
             
-            deleteBtn.addEventListener("click", () => {
-                currentHomeworkFiles.splice(index, 1);
-                updateStudentFilesList();
+            deleteBtn.addEventListener("click", async () => {
+                try {
+                    await deleteHomeworkFile(file.id);
+                    currentHomeworkFiles.splice(index, 1);
+                    updateStudentFilesList();
+                } catch (e) {
+                    console.error('Ошибка удаления файла:', e);
+                    alert("Ошибка удаления файла: " + e.message);
+                }
             });
 
             item.appendChild(nameSpan);
@@ -553,6 +574,8 @@ async function init() {
         elThemeText.textContent = "Выберите тему слева, чтобы увидеть материалы.";
         elHomeworkSection.style.display = "none";
         elTeacherAnswerSection.style.display = "none";
+        document.getElementById("teacher-files-section").style.display = "none";
+        document.getElementById("student-files-section").style.display = "none";
         elHomeworkAnswer.value = "";
         elHomeworkMessage.textContent = "";
         currentHomeworkFiles = [];
@@ -566,6 +589,17 @@ async function init() {
         currentTheme = null;
     }
 
+    async function deleteHomeworkFile(fileId) {
+        try {
+            await apiFetch(`/files/${fileId}`, {
+                method: "DELETE"
+            });
+        } catch (e) {
+            console.error('Ошибка удаления файла:', e);
+            throw new Error("Не удалось удалить файл");
+        }
+    }
+
     async function loadHomeworkData(themeId) {
         try {
             // Загружаем существующее домашнее задание студента
@@ -573,19 +607,84 @@ async function init() {
             
             if (existingHomework) {
                 elHomeworkAnswer.value = existingHomework.text || "";
-                // Загружаем файлы существующего домашнего задания
-                await loadExistingHomeworkFiles(themeId);
             } else {
                 elHomeworkAnswer.value = "";
-                currentHomeworkFiles = [];
-                updateStudentFilesList();
             }
+
+            // Загружаем файлы существующего домашнего задания
+            await loadExistingHomeworkFiles(themeId);
 
             // Загружаем ответ преподавателя
             await loadTeacherFeedback(themeId);
             
         } catch (e) {
             console.error('Ошибка загрузки данных домашнего задания:', e);
+        }
+    }
+
+    async function loadTeacherFeedback(themeId) {
+        try {
+            const homeworks = await apiFetch(`/homeworks/my?theme_id=${themeId}`);
+            if (Array.isArray(homeworks) && homeworks.length > 0) {
+                const homework = homeworks[0];
+                
+                // Проверяем наличие submission с оценкой
+                if (homework.submission && (homework.submission.score || homework.submission.teacher_comment)) {
+                    let feedbackHTML = '';
+                    
+                    // Оценка
+                    if (homework.submission.score) {
+                        feedbackHTML += `<div class="grade-score"><strong>Оценка:</strong> ${homework.submission.score}/10</div>`;
+                    } else {
+                        feedbackHTML += `<div><strong>Оценка:</strong> Ожидает оценки</div>`;
+                    }
+                    
+                    // Комментарий преподавателя
+                    if (homework.submission.teacher_comment) {
+                        feedbackHTML += `<div style="margin-top: 12px;"><strong>Комментарий преподавателя:</strong></div>`;
+                        feedbackHTML += `<div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 8px; border: 1px solid #e2e8f0;">${homework.submission.teacher_comment}</div>`;
+                    } else {
+                        feedbackHTML += `<div style="margin-top: 12px;"><strong>Комментарий преподавателя:</strong> Ожидает комментария</div>`;
+                    }
+                    
+                    // Дата проверки
+                    if (homework.submission.submitted_at) {
+                        const date = new Date(homework.submission.submitted_at).toLocaleDateString('ru-RU');
+                        feedbackHTML += `<div style="margin-top: 12px;"><strong>Проверено:</strong> ${date}</div>`;
+                    }
+                    
+                    elTeacherAnswerBlock.innerHTML = feedbackHTML;
+                    elTeacherAnswerSection.style.display = "block";
+                } else {
+                    // Если проверки еще нет
+                    elTeacherAnswerBlock.innerHTML = `
+                        <div style="text-align: center; color: #6b7280; padding: 20px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                            <div><strong>Ожидается проверка преподавателем</strong></div>
+                            <div style="margin-top: 8px; font-size: 14px;">Ваша работа отправлена и будет проверена в ближайшее время</div>
+                        </div>
+                    `;
+                    elTeacherAnswerSection.style.display = "block";
+                }
+            } else {
+                // Если домашнее задание еще не отправлено
+                elTeacherAnswerBlock.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📤</div>
+                        <div><strong>Работа еще не отправлена</strong></div>
+                        <div style="margin-top: 8px; font-size: 14px;">Отправьте домашнее задание, чтобы преподаватель мог его проверить</div>
+                    </div>
+                `;
+                elTeacherAnswerSection.style.display = "block";
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки ответа преподавателя:', e);
+            elTeacherAnswerBlock.innerHTML = `
+                <div class="message-error">
+                    Ошибка загрузки данных проверки: ${e.message}
+                </div>
+            `;
+            elTeacherAnswerSection.style.display = "block";
         }
     }
 
@@ -601,10 +700,12 @@ async function init() {
     }
 
     // Загрузка файлов существующего домашнего задания
+    // Загрузка файлов существующего домашнего задания студента
     async function loadExistingHomeworkFiles(themeId) {
         try {
-            const files = await apiFetch(`/files/theme/${themeId}/getfiles`);
-            currentHomeworkFiles = Array.isArray(files) ? files : [];
+            // Загружаем студенческие файлы (is_homework=true)
+            const studentFiles = await apiFetch(`/files/theme/${themeId}/getfiles?is_homework=true`);
+            currentHomeworkFiles = Array.isArray(studentFiles) ? studentFiles : [];
             updateStudentFilesList();
         } catch (e) {
             console.error('Ошибка загрузки файлов ДЗ:', e);
@@ -615,10 +716,9 @@ async function init() {
 
     async function submitHomework() {
         const answer = elHomeworkAnswer.value.trim();
-        const filesInput = document.getElementById("hw-file");
         
-        if (!answer) {
-            elHomeworkMessage.textContent = "Введите ответ на задание";
+        if (!answer && currentHomeworkFiles.length === 0) {
+            elHomeworkMessage.textContent = "Введите ответ на задание или прикрепите файлы";
             elHomeworkMessage.className = "message-box message-error";
             return;
         }
@@ -633,21 +733,12 @@ async function init() {
             elHomeworkMessage.textContent = "Отправка...";
             elHomeworkMessage.className = "message-box";
 
-            // Загружаем файлы, если они есть
-            let uploadedFiles = [];
-            if (filesInput.files && filesInput.files.length > 0) {
-                uploadedFiles = await uploadHomeworkFiles(filesInput.files, currentTheme.id);
-            }
-
-            // Объединяем существующие файлы с новыми
-            const allFiles = [...currentHomeworkFiles, ...uploadedFiles];
-
             // Отправляем домашнее задание
             const homeworkData = {
                 theme_id: currentTheme.id,
                 title: currentTheme.name || "Домашнее задание",
                 text: answer,
-                files: allFiles
+                // Файлы уже загружены отдельно и связаны через theme_id
             };
 
             await apiFetch("/homeworks", {
@@ -661,9 +752,8 @@ async function init() {
             
             // Очищаем поля
             elHomeworkAnswer.value = "";
-            filesInput.value = "";
-            currentHomeworkFiles = [];
-            updateStudentFilesList();
+            const filesInput = document.getElementById("hw-file");
+            if (filesInput) filesInput.value = "";
 
             // Перезагружаем данные
             await loadHomeworkData(currentTheme.id);

@@ -135,11 +135,74 @@ async def grade_homework(
     if not current_user.is_teacher:
         raise HTTPException(status_code=403, detail="Only for teachers")
 
-    submission = await HomeworkRepository.update_submission_grade(
-        session, homework_id, grade_data.score, grade_data.teacher_comment
-    )
+    print(f"DEBUG: Grading homework ID: {homework_id}")
+    print(f"DEBUG: Teacher ID: {current_user.id}")
+    print(f"DEBUG: Grade data: {grade_data}")
 
-    if not submission:
+    # Сначала проверим существование домашнего задания
+    from sqlalchemy import select
+    from database.models import Homework, HomeworkSubmission
+    
+    homework_check = await session.execute(
+        select(Homework).filter(Homework.id == homework_id)
+    )
+    homework_exists = homework_check.scalar_one_or_none()
+    
+    if not homework_exists:
+        print(f"DEBUG: Homework with ID {homework_id} not found in database")
         raise HTTPException(status_code=404, detail="Homework submission not found")
 
-    return {"message": "Homework graded successfully"}
+    print(f"DEBUG: Homework found: ID={homework_exists.id}, Student={homework_exists.student_id}, Theme={homework_exists.theme_id}")
+
+    # Проверим, имеет ли преподаватель доступ к этому курсу
+    theme_check = await session.execute(
+        select(Theme)
+        .options(selectinload(Theme.course))
+        .filter(Theme.id == homework_exists.theme_id)
+    )
+    theme = theme_check.scalar_one_or_none()
+    
+    if not theme:
+        print(f"DEBUG: Theme not found for homework {homework_id}")
+        raise HTTPException(status_code=404, detail="Theme not found")
+
+    if theme.course.owner_id != current_user.id:
+        print(f"DEBUG: Teacher {current_user.id} is not owner of course {theme.course.id}")
+        raise HTTPException(status_code=403, detail="You are not the owner of this course")
+
+    print(f"DEBUG: Teacher has access to course. Checking for existing submission...")
+
+    # Ищем существующую submission или создаем новую
+    submission_check = await session.execute(
+        select(HomeworkSubmission).filter(HomeworkSubmission.homework_id == homework_id)
+    )
+    submission = submission_check.scalar_one_or_none()
+
+    if submission:
+        print(f"DEBUG: Existing submission found: ID={submission.id}")
+        # Обновляем существующую submission
+        submission.score = grade_data.score
+        submission.teacher_comment = grade_data.teacher_comment
+    else:
+        print(f"DEBUG: No existing submission, creating new one")
+        # Создаем новую submission
+        submission = HomeworkSubmission(
+            homework_id=homework_id,
+            user_id=homework_exists.student_id,  # ID студента
+            score=grade_data.score,
+            teacher_comment=grade_data.teacher_comment
+        )
+        session.add(submission)
+
+    # Также обновляем статус homework
+    homework_exists.status = "graded"
+
+    try:
+        await session.commit()
+        await session.refresh(submission)
+        print(f"DEBUG: Successfully graded homework {homework_id}")
+        return {"message": "Homework graded successfully"}
+    except Exception as e:
+        await session.rollback()
+        print(f"DEBUG: Error during commit: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error saving grade")
