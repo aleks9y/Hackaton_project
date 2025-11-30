@@ -1,9 +1,6 @@
 __pycache__/
 .idea/
-.env
 venv/
 Makefile
 ТЗ/
-*.yaml
-Dockerfile
-docker-compose.yaml
+**/uploads/

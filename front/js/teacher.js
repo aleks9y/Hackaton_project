@@ -1,5 +1,5 @@
 const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
-const LOGIN_PAGE = "/front/templates/index.html";
+const LOGIN_PAGE = "/index.html";
 
 // Глобальные переменные
 let currentUser = null;
@@ -210,17 +210,34 @@ async function init() {
         }
 
         try {
-            await apiFetch(`/homeworks/${currentHomeworkId}/grade`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ score, teacher_comment })
+            console.log(`DEBUG FRONTEND: Sending grade for homework ${currentHomeworkId}`, {
+                score,
+                teacher_comment
             });
+
+            // Отправляем данные в правильном формате
+            const response = await apiFetch(`/homeworks/${currentHomeworkId}/grade`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    score: score,
+                    teacher_comment: teacher_comment
+                })
+            });
+
+            console.log("DEBUG FRONTEND: Grade response:", response);
 
             elHwModalMsg.textContent = "Оценка сохранена.";
             elHwModalMsg.className = "message-box message-success";
 
-            await loadHomeworks();
+            // Закрываем модалку после успешного сохранения
+            setTimeout(() => {
+                closeHomeworkModal();
+                loadHomeworks(); // Перезагружаем список ДЗ
+            }, 1000);
+
         } catch (e) {
+            console.error("DEBUG FRONTEND: Error saving grade:", e);
             elHwModalMsg.textContent = "Ошибка при сохранении оценки: " + e.message;
             elHwModalMsg.className = "message-box message-error";
         }

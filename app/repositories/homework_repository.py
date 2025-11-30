@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from database.models import Homework, HomeworkSubmission, Theme, Course, User
 
@@ -12,9 +13,7 @@ class HomeworkRepository:
         await session.refresh(homework)
         return homework
 
-    async def create_submission(
-        session: AsyncSession, submission_data: dict
-    ) -> HomeworkSubmission:
+    async def create_submission(session: AsyncSession, submission_data: dict):
         submission = HomeworkSubmission(**submission_data)
         session.add(submission)
         await session.commit()
@@ -31,7 +30,16 @@ class HomeworkRepository:
         skip: int = 0,
         limit: int = 10,
     ) -> List[Homework]:
-        query = select(Homework).join(Theme).join(Course)
+        query = (
+            select(Homework)
+            .options(
+                selectinload(Homework.theme).selectinload(Theme.course),
+                selectinload(Homework.submission),  # ОБЯЗАТЕЛЬНО загружаем submission
+                selectinload(Homework.student),
+            )
+            .join(Theme)
+            .join(Course)
+        )
 
         if teacher_id:
             query = query.where(Course.owner_id == teacher_id)
@@ -46,7 +54,31 @@ class HomeworkRepository:
 
         query = query.offset(skip).limit(limit)
         result = await session.execute(query)
-        return result.scalars().all()
+
+        homeworks = result.scalars().all()
+
+        # ДОПОЛНИТЕЛЬНО: Убедимся, что у каждого homework есть submission
+        for homework in homeworks:
+            if not homework.submission:
+                print(
+                    f"WARNING: Homework {homework.id} has no submission, creating one"
+                )
+                # Создаем submission если ее нет
+                submission = HomeworkSubmission(
+                    homework_id=homework.id,
+                    user_id=homework.student_id,
+                    score=0,
+                    teacher_comment="",
+                )
+                session.add(submission)
+
+        try:
+            await session.commit()
+        except Exception as e:
+            print(f"Error creating missing submissions: {e}")
+            await session.rollback()
+
+        return homeworks
 
     async def update_submission_grade(
         session: AsyncSession,

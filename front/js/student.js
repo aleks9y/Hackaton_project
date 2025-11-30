@@ -1,6 +1,6 @@
 // Настройки
 const BASE_URL = "https://merely-factual-platy.cloudpub.ru"; // поправь под свой бэк
-const LOGIN_PAGE = "/front/templates/index.html";
+const LOGIN_PAGE = "/index.html";
 
 // Глобальные переменные
 let currentUser = null;
