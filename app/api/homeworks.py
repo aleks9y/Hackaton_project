@@ -75,9 +75,9 @@ async def submit_homework(
     submission = await HomeworkRepository.create_submission(
         session, {**submission_data.model_dump(), "status": "pending"}
     )
-    return submission
+    return submission 
 
-
+2
 @homeworks_router.get("/my")
 async def get_my_homeworks(
     theme_id: Optional[int] = Query(None),
@@ -142,17 +142,19 @@ async def grade_homework(
     # Сначала проверим существование домашнего задания
     from sqlalchemy import select
     from database.models import Homework, HomeworkSubmission
-    
+
     homework_check = await session.execute(
         select(Homework).filter(Homework.id == homework_id)
     )
     homework_exists = homework_check.scalar_one_or_none()
-    
+
     if not homework_exists:
         print(f"DEBUG: Homework with ID {homework_id} not found in database")
         raise HTTPException(status_code=404, detail="Homework submission not found")
 
-    print(f"DEBUG: Homework found: ID={homework_exists.id}, Student={homework_exists.student_id}, Theme={homework_exists.theme_id}")
+    print(
+        f"DEBUG: Homework found: ID={homework_exists.id}, Student={homework_exists.student_id}, Theme={homework_exists.theme_id}"
+    )
 
     # Проверим, имеет ли преподаватель доступ к этому курсу
     theme_check = await session.execute(
@@ -161,14 +163,18 @@ async def grade_homework(
         .filter(Theme.id == homework_exists.theme_id)
     )
     theme = theme_check.scalar_one_or_none()
-    
+
     if not theme:
         print(f"DEBUG: Theme not found for homework {homework_id}")
         raise HTTPException(status_code=404, detail="Theme not found")
 
     if theme.course.owner_id != current_user.id:
-        print(f"DEBUG: Teacher {current_user.id} is not owner of course {theme.course.id}")
-        raise HTTPException(status_code=403, detail="You are not the owner of this course")
+        print(
+            f"DEBUG: Teacher {current_user.id} is not owner of course {theme.course.id}"
+        )
+        raise HTTPException(
+            status_code=403, detail="You are not the owner of this course"
+        )
 
     print(f"DEBUG: Teacher has access to course. Checking for existing submission...")
 
@@ -190,7 +196,7 @@ async def grade_homework(
             homework_id=homework_id,
             user_id=homework_exists.student_id,  # ID студента
             score=grade_data.score,
-            teacher_comment=grade_data.teacher_comment
+            teacher_comment=grade_data.teacher_comment,
         )
         session.add(submission)
 

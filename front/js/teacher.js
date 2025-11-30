@@ -217,7 +217,7 @@ async function init() {
 
             // Отправляем данные в правильном формате
             const response = await apiFetch(`/homeworks/${currentHomeworkId}/grade`, {
-                method: "POST",
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     score: score,

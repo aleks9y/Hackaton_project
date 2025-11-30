@@ -738,13 +738,13 @@ async function init() {
 
             // Отправляем домашнее задание
             const homeworkData = {
-                theme_id: currentTheme.id,
                 title: currentTheme.name || "Домашнее задание",
                 text: answer,
-                // Файлы уже загружены отдельно и связаны через theme_id
+                // theme_id теперь передается в URL, а не в теле
             };
 
-            await apiFetch("/homeworks", {
+            // ИСПРАВЛЕНИЕ: Добавляем theme_id в URL
+            await apiFetch(`/homeworks/${currentTheme.id}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(homeworkData)
