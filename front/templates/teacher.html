@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Кабинет преподавателя</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        :root {
+            --bg: #f5f6fb;
+            --card-bg: #ffffff;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --radius-lg: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .page-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .app-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .app-subtitle {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .user-mini {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            font-size: 13px;
+        }
+
+        .user-mini-name {
+            font-weight: 500;
+        }
+
+        .user-mini-role {
+            color: var(--muted);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            gap: 6px;
+            transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+            box-shadow: none;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 18px 18px 16px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+        }
+
+        .card + .card {
+            margin-top: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .layout-three-cols {
+            display: grid;
+            grid-template-columns: 1.4fr 1.7fr 1.5fr;
+            gap: 18px;
+        }
+
+        .layout-two-cols {
+            display: grid;
+            grid-template-columns: 1.2fr 1.5fr;
+            gap: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 9px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+            background: #fff;
+        }
+
+        .select-sm {
+            font-size: 12px;
+            padding: 6px 8px;
+        }
+
+        .muted-text {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .table th,
+        .table td {
+            padding: 7px 7px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .table th {
+            font-weight: 500;
+            color: #4b5563;
+            background: #f3f4f6;
+        }
+
+        .avatar-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            background: #dbeafe;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 500;
+            margin-right: 6px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        .pill-status {
+            font-size: 11px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .pill-status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .pill-status-pending {
+            background: #e0f2fe;
+            color: #1d4ed8;
+        }
+
+        .courses-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .course-item {
+            padding: 8px 9px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .course-item.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .course-item-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .course-item-meta {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .themes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .theme-item {
+            padding: 6px 7px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .theme-item.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .theme-item-main {
+            max-width: 70%;
+        }
+
+        .theme-item-title {
+            font-weight: 500;
+        }
+
+        .textarea {
+            width: 100%;
+            min-height: 70px;
+            resize: vertical;
+            padding: 8px 9px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+            background: #fff;
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .message-box {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .message-error {
+            color: #dc2626;
+        }
+
+        .message-success {
+            color: #16a34a;
+        }
+
+        /* вкладки */
+        .tabs {
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 3px;
+            background: #e5e7eb;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            padding: 6px 14px;
+            font-size: 13px;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .tab-btn.PageActive {
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+        }
+
+        .teacher-page {
+            display: none;
+        }
+
+        .teacher-page.PageActive {
+            display: block;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .form-checkbox input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .files-input {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 1000px) {
+            .layout-three-cols,
+            .layout-two-cols {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .user-mini {
+                align-items: flex-start;
+            }
+        }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 16px 18px 14px;
+            width: 100%;
+            max-width: 640px;
+            max-height: 80vh;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .modal-close {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            color: #6b7280;
+        }
+
+        .modal-close:hover {
+            color: #111827;
+        }
+
+        .modal-body {
+            font-size: 13px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .modal-meta {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            row-gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .modal-text {
+            padding: 8px 9px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            white-space: pre-wrap;
+        }
+
+        .modal-score-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-score-row input[type="range"] {
+            flex: 1;
+        }
+
+        .modal-score-value {
+            min-width: 36px;
+            text-align: right;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .modal-footer {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .files-input {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .files-list {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .files-list-item a {
+            text-decoration: none;
+            border-bottom: 1px dashed rgba(55, 65, 81, 0.4);
+        }
+
+        .files-list-item a:hover {
+            border-bottom-style: solid;
+        }
+        
+        .files-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #f9fafb;
+            margin-bottom: 4px;
+        }
+
+        .file-delete-btn {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            color: #6b7280;
+            padding: 2px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .file-delete-btn:hover {
+            color: #dc2626;
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .file-link {
+            flex: 1;
+            text-decoration: none;
+            color: #3b82f6;
+            font-size: 13px;
+            border-bottom: 1px dashed rgba(59, 130, 246, 0.4);
+            padding: 2px 0;
+        }
+
+        .file-link:hover {
+            border-bottom-style: solid;
+        }
+    </style>
+</head>
+
+<body>
+<div class="page-wrapper">
+
+    <header class="app-header">
+        <div class="app-logo">
+            <div class="app-logo-mark"></div>
+            <div>
+                <div class="app-title">Учебная платформа</div>
+                <div class="app-subtitle">Кабинет преподавателя</div>
+            </div>
+        </div>
+
+        <div class="user-mini">
+            <span class="user-mini-name" id="user-name">Загрузка...</span>
+            <span class="user-mini-role" id="user-role">Проверка роли</span>
+            <button class="btn btn-sm btn-secondary" id="logout-btn" type="button">
+                Выйти
+            </button>
+        </div>
+    </header>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Рабочий стол преподавателя</div>
+                <div class="card-subtitle">Ученики, домашние задания и курсы</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="tabs">
+                    <button class="tab-btn PageActive" data-page="students">Мои ученики</button>
+                    <button class="tab-btn" data-page="courses">Мои курсы</button>
+                </div>
+                <div class="muted-text" id="global-message" style="margin-top:4px;"></div>
+            </div>
+        </div>
+
+        <!-- Вкладка 1: Мои ученики -->
+        <section id="page-students" class="teacher-page PageActive">
+            <div class="layout-two-cols">
+
+                <!-- Мои ученики -->
+                <section>
+                    <div class="card-title" style="margin-bottom: 6px;">Мои ученики</div>
+                    <p class="card-subtitle" style="margin-bottom: 8px;">
+                        Список студентов, записанных на ваши курсы.
+                    </p>
+
+                    <table class="table" id="students-table">
+                        <thead>
+                        <tr>
+                            <th>Студент</th>
+                            <th>Email</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- JS вставит строки -->
+                        </tbody>
+                    </table>
+
+                    <div class="muted-text" style="margin-top: 6px;">
+                        Нажмите на студента (будет доработка), чтобы отфильтровать его домашние задания.
+                    </div>
+
+                    <div class="message-box" id="students-message"></div>
+                </section>
+
+                <!-- Домашние задания -->
+                <section>
+                    <div class="card-title" style="margin-bottom: 6px;">Домашние задания на проверку</div>
+                    <p class="card-subtitle" style="margin-bottom: 6px;">
+                        Фильтрация по курсу, теме, статусу и студенту.
+                    </p>
+
+                    <div class="filters-row">
+                        <select class="form-control select-sm" id="filter-course">
+                            <option value="">Курс: все</option>
+                        </select>
+                        <select class="form-control select-sm" id="filter-theme">
+                            <option value="">Тема: все</option>
+                        </select>
+                        <select class="form-control select-sm" id="filter-status">
+                            <option value="">Статус: все</option>
+                            <option value="pending">На проверке</option>
+                            <option value="graded">Проверено</option>
+                        </select>
+                        <select class="form-control select-sm" id="filter-student">
+                            <option value="">Студент: все</option>
+                        </select>
+                        <button class="btn btn-sm" type="button" id="btn-apply-filters">Обновить</button>
+                    </div>
+
+                    <table class="table" id="homeworks-table">
+                        <thead>
+                        <tr>
+                            <th>Курс</th>
+                            <th>Тема</th>
+                            <th>Студент</th>
+                            <th>Статус</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- JS вставит строки -->
+                        </tbody>
+                    </table>
+
+                    <div class="message-box" id="homeworks-message"></div>
+                </section>
+
+            </div>
+        </section>
+
+        <!-- Вкладка 2: Мои курсы (слева) + редактор (справа) -->
+        <section id="page-courses" class="teacher-page">
+            <div class="layout-two-cols">
+
+                <!-- ЛЕВО: список курсов и тем -->
+                <section>
+                    <div class="card-title" style="margin-bottom: 6px;">Мои курсы и темы</div>
+                    <p class="card-subtitle" style="margin-bottom: 6px;">
+                        Выберите курс, затем тему для редактирования.
+                    </p>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span class="muted-text">
+                            Ваши курсы:
+                        </span>
+                        <button class="btn btn-sm" type="button" id="btn-add-course">
+                            + Создать курс
+                        </button>
+                    </div>
+
+                    <div class="courses-list" id="courses-list">
+                        <!-- JS вставит курсы -->
+                    </div>
+
+                    <div class="muted-text" style="margin-top: 8px;">
+                        После выбора курса появятся его темы.
+                    </div>
+
+                    <div class="themes-list" id="themes-list">
+                        <!-- JS вставит темы -->
+                    </div>
+
+                    <div class="message-box" id="themes-message"></div>
+                </section>
+
+                <!-- ПРАВО: редактор курса и темы -->
+                <section>
+                    <!-- Редактирование курса -->
+                    <div style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
+                        <div class="card-subtitle" style="margin-bottom: 6px;">
+                            Курс
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="course-name">Название курса</label>
+                            <input class="form-control" id="course-name" type="text" placeholder="Например: Основы Python">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="course-description">Описание курса</label>
+                            <textarea class="textarea" id="course-description" placeholder="Краткое описание курса..."></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button class="btn btn-sm" type="button" id="btn-save-course">Сохранить курс</button>
+                            <button class="btn btn-sm btn-secondary" type="button" id="btn-delete-course">Удалить курс</button>
+                        </div>
+
+                        <div class="message-box" id="course-form-message"></div>
+                    </div>
+
+                    <!-- Редактирование темы -->
+                    <div>
+                        <div class="card-subtitle" style="margin-bottom: 6px;">
+                            Тема
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="theme-name">Название темы</label>
+                            <input class="form-control" id="theme-name" type="text" placeholder="Например: Введение в Python">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="theme-text">Текст темы</label>
+                            <textarea class="textarea" id="theme-text" placeholder="Теоретический материал или условие задачи..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-checkbox">
+                                <input type="checkbox" id="theme-is-homework">
+                                <span>Домашнее задание</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="theme-files">Файлы для темы</label>
+                            <input id="theme-files" type="file" multiple class="files-input">
+                            <div id="theme-files-list" class="files-list"></div>
+                        </div>
+
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button class="btn btn-sm" type="button" id="btn-save-theme">Сохранить тему</button>
+                            <button class="btn btn-sm btn-secondary" type="button" id="btn-clear-theme">Очистить форму</button>
+                            <button class="btn btn-sm btn-secondary" type="button" id="btn-delete-theme">Удалить тему</button>
+                        </div>
+
+                        <div class="message-box" id="theme-form-message"></div>
+                    </div>
+                </section>
+
+            </div>
+        </section>
+
+        <!-- Модальное окно для просмотра и оценки ДЗ -->
+        <div id="homework-modal" class="modal-backdrop">
+            <div class="modal-card" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <div>
+                        <div class="modal-title" id="modal-hw-title">Домашнее задание</div>
+                    </div>
+                    <button type="button" class="modal-close" id="modal-hw-close" aria-label="Закрыть">
+                        ×
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-meta">
+                        <div>
+                            <span class="muted-text">Студент: </span>
+                            <span id="modal-hw-student"></span>
+                        </div>
+                        <div>
+                            <span class="muted-text">Статус: </span>
+                            <span id="modal-hw-status"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-label">Ответ студента</div>
+                        <div class="modal-text" id="modal-hw-text"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Файлы для темы</label>
+                        <div id="modal-hw-file-list" class="modal-hw-files-list"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="modal-hw-score">Оценка (1–10)</label>
+                        <div class="modal-score-row">
+                            <input type="range" id="modal-hw-score" min="1" max="10" step="1">
+                            <span class="modal-score-value" id="modal-hw-score-value">—</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="modal-hw-comment">Комментарий преподавателя</label>
+                        <textarea class="textarea" id="modal-hw-comment"
+                                placeholder="Напишите комментарий к работе..."></textarea>
+                    </div>
+
+                    <div class="message-box" id="modal-hw-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm" type="button" id="modal-hw-save">Сохранить оценку</button>
+                    <button class="btn btn-sm btn-secondary" type="button" id="modal-hw-cancel">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="/front/js/teacher.js"></script>
+</body>
+</html>

@@ -34,11 +34,11 @@ async def verify_token(token: str) -> Optional[dict]:
 
 
 async def auth_user(
-    phone: str,
+    email: str,
     input_password: str,
-    session = SessionDep,
+    session=SessionDep,
 ) -> Optional[User]:
-    user = await UserRepository.get_user_by_phone(session, phone)
+    user: User = await UserRepository.get_user_by_email(session, email)
     if not user:
         return None
 
@@ -53,23 +53,20 @@ async def get_token_from_cookie(request: Request) -> Optional[str]:
 
 
 async def set_access_token_cookie(
-    response: Response,
-    access_token: str,
-    expires_days: int = 30
+    response: Response, access_token: str, expires_days: int = 30
 ) -> None:
     print(f"🔐 Устанавливаю куку access_token: {access_token[:20]}...")
     print(f"📝 Параметры куки: httponly=False, secure=False, path=/")
-    
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=False,
         max_age=expires_days * 24 * 60 * 60,
         path="/",
-        secure=False, 
-        domain="127.0.0.1" 
+        secure=False
     )
-    
+
     print("✅ Кука должна быть установлена")
 
 
@@ -85,7 +82,7 @@ async def get_current_user(
     session: AsyncSession = Depends(get_session),
 ) -> User:
     token = None
-    
+
     token_from_cookie = await get_token_from_cookie(request)
     if token_from_cookie:
         token = token_from_cookie
@@ -97,7 +94,7 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    
+
     payload = await verify_token(token)
     if payload is None:
         print("❌ Невалидный токен")
@@ -114,7 +111,7 @@ async def get_current_user(
             detail="Invalid token payload",
         )
 
-    user = await UserRepository.get_user_by_id(session, user_id)
+    user: User = await UserRepository.get_user_by_id(session, user_id)
     if user is None:
         print("❌ Пользователь не найден")
         raise HTTPException(
@@ -122,5 +119,5 @@ async def get_current_user(
             detail="User not found",
         )
 
-    print(f"✅ Пользователь аутентифицирован: {user.phone}")
+    print(f"✅ Пользователь аутентифицирован: {user.email}")
     return user

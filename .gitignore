@@ -6,3 +6,4 @@ Makefile
 ТЗ/
 *.yaml
 Dockerfile
+docker-compose.yaml
